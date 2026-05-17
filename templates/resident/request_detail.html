@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+{% block title %}Request {{ pickup.request_number }}{% endblock %}
+{% block breadcrumb_current %}Request {{ pickup.request_number }}{% endblock %}
+{% block extra_styles %}
+.detail-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:20px}
+.timeline{display:flex;flex-direction:column;gap:0}
+.tl-item{display:flex;gap:14px;padding-bottom:20px;position:relative}
+.tl-item:last-child{padding-bottom:0}
+.tl-item::before{content:'';position:absolute;left:15px;top:32px;bottom:0;width:2px;background:var(--border-color)}
+.tl-item:last-child::before{display:none}
+.tl-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;z-index:1;border:2px solid var(--border-color);background:var(--bg-surface)}
+.tl-dot.done{background:var(--brand-50);border-color:var(--brand-400);color:var(--brand-700)}
+.tl-dot.active{background:var(--color-primary);border-color:var(--color-primary);color:white}
+.map-wrap{width:100%;height:280px;border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--border-color);background:var(--bg-surface-2);display:flex;align-items:center;justify-content:center;color:var(--text-muted)}
+.rating-star{font-size:28px;cursor:pointer;color:var(--border-color);transition:color .1s}
+.rating-star:hover,.rating-star.selected{color:#f59e0b}
+@media(max-width:768px){.detail-grid{grid-template-columns:1fr}}
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-header-row">
+    <div>
+      <h1>{{ pickup.request_number }}</h1>
+      <p>{{ pickup.category.name }} · {{ pickup.division|title }} Division · {{ pickup.created_at|date:"d M Y" }}</p>
+    </div>
+    <div class="flex gap-2">
+      <span class="badge badge-{{ pickup.status }}" style="font-size:14px;padding:8px 16px">
+        <span class="badge-dot"></span>{{ pickup.get_status_display }}
+      </span>
+      {% if not pickup.is_paid and pickup.status != 'cancelled' %}
+      <a href="{% url 'initiate_payment' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-credit-card"></i> Pay UGX {{ pickup.amount_due|floatformat:0 }}
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="detail-grid">
+  <!-- Left -->
+  <div class="flex-col gap-4">
+    <!-- Details Card -->
+    <div class="card">
+      <div class="card-title mb-4">Pickup Details</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div class="text-xs text-muted" style="text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Category</div>
+          <div class="font-semibold">{{ pickup.category.icon }} {{ pickup.category.name }}</div>
+        </div>
+        <div>
+          <div class="text-xs text-muted" style="text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Priority</div>
+          <div class="font-semibold">{{ pickup.get_priority_display }}</div>
+        </div>
+        <div>
+          <div class="text-xs text-muted" style="text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Division</div>
+          <div class="font-semibold">{{ pickup.division|title }}</div>
+        </div>
+        <div>
+          <div class="text-xs text-muted" style="text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Quantity</div>
+          <div class="font-semibold">{{ pickup.quantity }} bag{{ pickup.quantity|pluralize }}</div>
+        </div>
+        {% if pickup.preferred_date %}
+        <div>
+          <div class="text-xs text-muted" style="text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Preferred Date</div>
+          <div class="font-semibold">{{ pickup.preferred_date|date:"d M Y" }}</div>
+        </div>
+        {% endif %}
+        {% if pickup.estimated_weight_kg %}
+        <div>
+          <div class="text-xs text-muted" style="text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Est. Weight</div>
+          <div class="font-semibold">{{ pickup.estimated_weight_kg }} kg</div>
+        </div>
+        {% endif %}
+      </div>
+      <div class="divider"></div>
+      <div>
+        <div class="text-xs text-muted" style="text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Pickup Address</div>
+        <div class="font-semibold"><i class="bi bi-geo-alt text-primary-color"></i> {{ pickup.address }}</div>
+        {% if pickup.location_instructions %}
+        <div class="text-sm text-secondary mt-1">{{ pickup.location_instructions }}</div>
+        {% endif %}
+      </div>
+      {% if pickup.waste_description %}
+      <div class="mt-4">
+        <div class="text-xs text-muted" style="text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Description</div>
+        <div class="text-sm">{{ pickup.waste_description }}</div>
+      </div>
+      {% endif %}
+      {% if pickup.waste_image %}
+      <div class="mt-4">
+        <div class="text-xs text-muted" style="text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Evidence Photo</div>
+        <img src="{{ pickup.waste_image.url }}" alt="Waste" style="max-height:180px;border-radius:var(--radius-md);border:1px solid var(--border-color)">
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Map -->
+    {% if pickup.latitude and pickup.longitude %}
+    <div class="card">
+      <div class="card-title mb-3">Location Map</div>
+      <div id="detail-map" class="map-wrap">
+        <div style="text-align:center"><i class="bi bi-map" style="font-size:32px;display:block;margin-bottom:8px"></i><div>Map loading…</div></div>
+      </div>
+      {% if assignment and assignment.collector and assignment.collector.latitude %}
+      <div style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 14px;background:var(--bg-surface-2);border-radius:var(--radius-md)">
+        <i class="bi bi-truck" style="color:var(--color-info);font-size:18px"></i>
+        <div>
+          <div class="font-semibold text-sm">{{ assignment.collector.get_display_name }} is on the way</div>
+          <div class="text-xs text-muted">Last updated: {{ assignment.collector.location_updated_at|timesince }} ago</div>
+        </div>
+        <a href="https://www.google.com/maps/dir/?api=1&destination={{ pickup.latitude }},{{ pickup.longitude }}" target="_blank" class="btn btn-info btn-sm ml-auto">
+          <i class="bi bi-map"></i> Navigate
+        </a>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Rating (if collected and not rated) -->
+    {% if pickup.status == 'collected' and not pickup.resident_rating %}
+    <div class="card" style="border:2px solid var(--brand-200);background:var(--brand-50)">
+      <div class="card-title mb-2">⭐ Rate this Pickup</div>
+      <p class="text-sm text-secondary mb-4">How was your experience with the waste collector?</p>
+      <form method="post" action="{% url 'submit_rating' pickup.pk %}">
+        {% csrf_token %}
+        <div style="display:flex;gap:8px;margin-bottom:16px" id="stars">
+          {% for i in "12345" %}
+          <span class="rating-star" data-val="{{ forloop.counter }}" onclick="setRating({{ forloop.counter }})">★</span>
+          {% endfor %}
+        </div>
+        <input type="hidden" name="rating" id="rating-input" required>
+        <div class="form-group">
+          <label class="form-label">Comments (optional)</label>
+          <textarea name="feedback" class="form-control" rows="2" placeholder="Share your experience…"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" id="rate-btn" disabled>Submit Rating</button>
+      </form>
+    </div>
+    {% elif pickup.resident_rating %}
+    <div class="card">
+      <div class="card-title mb-2">Your Rating</div>
+      <div style="font-size:28px;color:#f59e0b">{{ pickup.resident_rating }}★</div>
+      {% if pickup.resident_feedback %}
+      <div class="text-sm text-secondary mt-2">"{{ pickup.resident_feedback }}"</div>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right -->
+  <div class="flex-col gap-4">
+    <!-- Status Timeline -->
+    <div class="card">
+      <div class="card-title mb-4">Status Timeline</div>
+      <div class="timeline">
+        {% with statuses="pending,assigned,in_progress,collected" %}
+        {% for s in statuses.split %}
+        {% endfor %}
+        {% endwith %}
+        <div class="tl-item">
+          <div class="tl-dot done">✓</div>
+          <div><div class="font-semibold text-sm">Request Submitted</div><div class="text-xs text-muted">{{ pickup.created_at|date:"d M Y H:i" }}</div></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot {% if pickup.status in 'assigned,in_progress,collected' %}done{% elif pickup.status == 'pending' %}active{% endif %}">
+            {% if pickup.status in 'assigned,in_progress,collected' %}✓{% else %}2{% endif %}
+          </div>
+          <div>
+            <div class="font-semibold text-sm">Collector Assigned</div>
+            {% if assignment %}
+            <div class="text-xs text-muted">{{ assignment.collector.get_display_name }}</div>
+            {% if assignment.scheduled_date %}
+            <div class="text-xs text-muted">Scheduled: {{ assignment.scheduled_date|date:"d M Y" }}</div>
+            {% endif %}
+            {% else %}
+            <div class="text-xs text-muted">Awaiting assignment</div>
+            {% endif %}
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot {% if pickup.status in 'in_progress,collected' %}done{% elif pickup.status == 'assigned' %}active{% endif %}">
+            {% if pickup.status in 'in_progress,collected' %}✓{% else %}3{% endif %}
+          </div>
+          <div>
+            <div class="font-semibold text-sm">Collection In Progress</div>
+            <div class="text-xs text-muted">Collector en route to pickup</div>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot {% if pickup.status == 'collected' %}done{% endif %}">
+            {% if pickup.status == 'collected' %}✓{% else %}4{% endif %}
+          </div>
+          <div>
+            <div class="font-semibold text-sm">Collection Completed</div>
+            {% if pickup.collected_at %}
+            <div class="text-xs text-muted">{{ pickup.collected_at|date:"d M Y H:i" }}</div>
+            {% else %}
+            <div class="text-xs text-muted">Pending completion</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Summary -->
+    <div class="card">
+      <div class="card-title mb-3">Payment</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="text-secondary">Amount Due</span>
+        <span class="font-bold" style="font-size:18px;color:var(--color-primary)">UGX {{ pickup.amount_due|floatformat:0 }}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+        <span class="text-secondary">Status</span>
+        {% if pickup.is_paid %}
+        <span class="badge badge-successful"><span class="badge-dot"></span>Paid</span>
+        {% else %}
+        <span class="badge badge-pending"><span class="badge-dot"></span>Unpaid</span>
+        {% endif %}
+      </div>
+      {% if pickup.payment %}
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+        <span class="text-secondary text-xs">Ref</span>
+        <span class="text-xs font-semibold" style="font-family:monospace">{{ pickup.payment.reference }}</span>
+      </div>
+      {% endif %}
+      {% if not pickup.is_paid and pickup.status != 'cancelled' %}
+      <a href="{% url 'initiate_payment' %}" class="btn btn-primary w-full mt-4">
+        <i class="bi bi-credit-card"></i> Pay Now
+      </a>
+      {% endif %}
+    </div>
+
+    <!-- Collector Info -->
+    {% if assignment and assignment.collector %}
+    <div class="card">
+      <div class="card-title mb-3">Your Collector</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="avatar avatar-lg">{{ assignment.collector.get_initials }}</div>
+        <div>
+          <div class="font-bold">{{ assignment.collector.get_display_name }}</div>
+          <div class="text-sm text-muted">{{ assignment.collector.phone }}</div>
+          {% if assignment.collector.collector_profile %}
+          <div class="text-xs text-muted">⭐ {{ assignment.collector.collector_profile.rating }}/5.0 rating</div>
+          {% endif %}
+        </div>
+      </div>
+      {% if assignment.collector.phone %}
+      <a href="tel:{{ assignment.collector.phone }}" class="btn btn-secondary w-full mt-3">
+        <i class="bi bi-telephone"></i> Call Collector
+      </a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="card">
+      <div class="card-title mb-3">Actions</div>
+      <div class="flex-col gap-2">
+        {% if pickup.status in 'pending,assigned' and pickup.user == user %}
+        <button onclick="cancelRequest()" class="btn btn-danger w-full">
+          <i class="bi bi-x-circle"></i> Cancel Request
+        </button>
+        {% endif %}
+        <a href="{% url 'my_requests' %}" class="btn btn-secondary w-full">
+          <i class="bi bi-arrow-left"></i> Back to Requests
+        </a>
+        <a href="{% url 'make_request' %}" class="btn btn-secondary w-full">
+          <i class="bi bi-plus-lg"></i> New Request
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function setRating(val) {
+  document.getElementById('rating-input').value = val;
+  document.querySelectorAll('.rating-star').forEach((s, i) => {
+    s.classList.toggle('selected', i < val);
+  });
+  document.getElementById('rate-btn').disabled = false;
+}
+
+function cancelRequest() {
+  if (!confirm('Are you sure you want to cancel this pickup request?')) return;
+  fetch('/api/v1/waste/requests/{{ pickup.pk }}/cancel/', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason: 'Cancelled by resident' })
+  }).then(r => r.json()).then(d => {
+    if (d.message) location.reload();
+    else alert('Could not cancel: ' + (d.error || 'Unknown error'));
+  }).catch(() => alert('Error cancelling request'));
+}
+
+{% if pickup.latitude and pickup.longitude and GOOGLE_MAPS_KEY %}
+function initMap() {
+  const pos = { lat: {{ pickup.latitude }}, lng: {{ pickup.longitude }} };
+  const map = new google.maps.Map(document.getElementById('detail-map'), {
+    zoom: 15, center: pos,
+    mapTypeControl: false, streetViewControl: false
+  });
+  new google.maps.Marker({ position: pos, map, title: 'Pickup Location',
+    icon: { path: google.maps.SymbolPath.CIRCLE, scale: 10, fillColor: '#1e8f47', fillOpacity: 1, strokeColor: 'white', strokeWeight: 2 }
+  });
+  {% if assignment and assignment.collector and assignment.collector.latitude %}
+  const cpos = { lat: {{ assignment.collector.latitude }}, lng: {{ assignment.collector.longitude }} };
+  new google.maps.Marker({ position: cpos, map, title: 'Collector Location',
+    icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 6, fillColor: '#2563eb', fillOpacity: 1, strokeColor: 'white', strokeWeight: 2 }
+  });
+  new google.maps.Polyline({ path: [pos, cpos], map, strokeColor: '#2563eb', strokeOpacity: 0.5, strokeWeight: 2 });
+  {% endif %}
+}
+{% endif %}
+
+function getCookie(n) { let v=`; ${document.cookie}`,p=v.split(`; ${n}=`);if(p.length===2)return p.pop().split(';').shift() }
+</script>
+{% if GOOGLE_MAPS_KEY %}
+<script async defer src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_KEY }}&callback=initMap"></script>
+{% endif %}
+{% endblock %}

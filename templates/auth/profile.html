@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}My Profile{% endblock %}
+{% block breadcrumb_current %}Profile{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-header-row">
+    <h1>My Profile</h1>
+    <a href="{% url 'profile_edit' %}" class="btn btn-primary"><i class="bi bi-pencil"></i> Edit Profile</a>
+  </div>
+</div>
+<div class="grid" style="grid-template-columns:1fr 2fr;gap:20px">
+  <div class="card" style="text-align:center">
+    <div class="avatar avatar-lg" style="width:80px;height:80px;font-size:28px;margin:0 auto 16px">
+      {% if user.avatar %}<img src="{{ user.avatar.url }}" alt="">{% else %}{{ user.get_initials }}{% endif %}
+    </div>
+    <div style="font-size:20px;font-weight:800">{{ user.get_display_name }}</div>
+    <div class="badge" style="margin:8px auto;display:inline-flex">{{ user.get_role_display }}</div>
+    <div class="text-sm text-muted mt-2">{{ user.email }}</div>
+    {% if user.phone %}<div class="text-sm text-muted">{{ user.phone }}</div>{% endif %}
+    {% if user.division %}<div class="text-sm text-muted mt-1">{{ user.division|title }} Division</div>{% endif %}
+    <div class="divider"></div>
+    <div style="display:flex;justify-content:space-around;text-align:center">
+      <div><div style="font-size:22px;font-weight:800;color:var(--color-primary)">{{ user.pickup_requests.count }}</div><div class="text-xs text-muted">Requests</div></div>
+      <div><div style="font-size:22px;font-weight:800;color:var(--color-primary)">{{ user.payments.count }}</div><div class="text-xs text-muted">Payments</div></div>
+    </div>
+  </div>
+  <div class="flex-col gap-4">
+    <div class="card">
+      <div class="card-title mb-4">Account Information</div>
+      {% for label, value in profile_data %}
+      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-light)">
+        <span class="text-muted text-sm">{{ label }}</span><span class="font-semibold text-sm">{{ value|default:"—" }}</span>
+      </div>
+      {% endfor %}
+      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-light)">
+        <span class="text-muted text-sm">Username</span><span class="font-semibold text-sm">{{ user.username }}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-light)">
+        <span class="text-muted text-sm">Email</span><span class="font-semibold text-sm">{{ user.email }}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-light)">
+        <span class="text-muted text-sm">Phone</span><span class="font-semibold text-sm">{{ user.phone|default:"Not set" }}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-light)">
+        <span class="text-muted text-sm">Division</span><span class="font-semibold text-sm">{{ user.division|title|default:"Not set" }}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-light)">
+        <span class="text-muted text-sm">Member since</span><span class="font-semibold text-sm">{{ user.date_joined|date:"d M Y" }}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:10px 0">
+        <span class="text-muted text-sm">2FA</span>
+        <span class="font-semibold text-sm {% if user.two_factor_enabled %}text-primary-color{% else %}text-muted{% endif %}">
+          {% if user.two_factor_enabled %}Enabled{% else %}Not enabled{% endif %}
+        </span>
+      </div>
+    </div>
+    {% if subscriptions %}
+    <div class="card">
+      <div class="card-title mb-3">Subscription History</div>
+      {% for sub in subscriptions %}
+      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-light)">
+        <div><div class="font-semibold text-sm">{{ sub.get_plan_display }}</div><div class="text-xs text-muted">{{ sub.start_date|date:"d M Y" }} – {{ sub.end_date|date:"d M Y" }}</div></div>
+        <span class="badge badge-{{ sub.status }}"><span class="badge-dot"></span>{{ sub.get_status_display }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

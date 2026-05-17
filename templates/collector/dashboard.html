@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+{% block title %}Collector Dashboard{% endblock %}
+{% block breadcrumb_current %}My Dashboard{% endblock %}
+
+{% block extra_styles %}
+.collector-hero { background: linear-gradient(135deg, #1e3a5f, #2563eb); border-radius: var(--radius-xl); padding: 28px 32px; color: white; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.status-toggle { display: flex; gap: 8px; flex-wrap: wrap; }
+.status-btn { padding: 8px 16px; border-radius: var(--radius-full); font-size: 13px; font-weight: 700; cursor: pointer; transition: all var(--transition-base); border: 2px solid transparent; }
+.status-btn.active-btn   { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.4); color: white; }
+.status-btn.online    { background: rgba(34,197,94,0.2); border-color: rgba(34,197,94,0.5); color: #86efac; }
+.status-btn.on_route  { background: rgba(251,191,36,0.2); border-color: rgba(251,191,36,0.5); color: #fde68a; }
+.status-btn.break     { background: rgba(156,163,175,0.2); border-color: rgba(156,163,175,0.5); color: #e5e7eb; }
+.status-btn.offline   { background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.5); color: #fca5a5; }
+
+.assignment-card { background: var(--bg-surface); border: 1.5px solid var(--border-color); border-radius: var(--radius-lg); padding: 18px; margin-bottom: 12px; transition: all var(--transition-base); }
+.assignment-card:hover { border-color: var(--color-primary); box-shadow: var(--shadow-md); }
+.assignment-card.priority-urgent { border-left: 4px solid var(--color-danger); }
+.assignment-card.priority-high   { border-left: 4px solid var(--color-warning); }
+.assignment-card.priority-normal { border-left: 4px solid var(--color-info); }
+.assignment-card.priority-low    { border-left: 4px solid var(--color-success); }
+
+.steps-row { display: flex; gap: 6px; margin-top: 12px; }
+.step-action { flex: 1; padding: 8px; text-align: center; border-radius: var(--radius-md); font-size: 12px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border-color); background: var(--bg-surface-2); color: var(--text-secondary); transition: all var(--transition-base); }
+.step-action:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.step-action.active { background: var(--color-primary); color: white; border-color: var(--color-primary); }
+.step-action.completed { background: var(--brand-50); color: var(--brand-700); border-color: var(--brand-300); }
+
+.location-pulse { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(22,115,57,0.1); border-radius: var(--radius-md); font-size: 12px; color: var(--brand-400); font-weight: 600; }
+.map-mini { width: 100%; height: 240px; border-radius: var(--radius-lg); border: 1px solid var(--border-color); }
+{% endblock %}
+
+{% block content %}
+<!-- Hero: Status + Today Stats -->
+<div class="collector-hero">
+  <div>
+    <div style="font-size:12px;opacity:0.7;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Good day,</div>
+    <h2 style="font-size:24px;font-weight:800;margin-bottom:4px">{{ user.get_display_name }}</h2>
+    {% if profile %}<div style="font-size:13px;opacity:0.75">ID: {{ profile.employee_id }} · {{ profile.get_vehicle_type_display }}</div>{% endif %}
+  </div>
+
+  <div style="text-align:center">
+    <div style="font-size:12px;opacity:0.7;margin-bottom:6px">Today's Progress</div>
+    <div style="font-size:36px;font-weight:900;letter-spacing:-1.5px">{{ stats.completed_today }}/{{ stats.today }}</div>
+    <div style="font-size:12px;opacity:0.7">Pickups completed</div>
+  </div>
+
+  <div>
+    <div style="font-size:12px;opacity:0.7;margin-bottom:10px;text-align:center">My Status</div>
+    <div class="status-toggle">
+      {% for val, label in profile.STATUS_CHOICES %}
+      <button class="status-btn {% if profile.status == val %}active-btn {% endif %}{{ val }}"
+              onclick="updateStatus('{{ val }}', this)">
+        {% if val == 'available' %}🟢{% elif val == 'on_route' %}🚛{% elif val == 'break' %}☕{% else %}⛔{% endif %}
+        {{ label }}
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns:2fr 1fr;gap:20px">
+  <!-- Left: Today's Assignments -->
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Today's Assignments</div>
+          <div class="card-subtitle">{{ today_assignments|length }} total · {{ stats.today }} scheduled</div>
+        </div>
+        {% if active_route %}
+        <div class="badge badge-assigned">
+          <span class="badge-dot"></span>Route Active
+        </div>
+        {% endif %}
+      </div>
+
+      {% for assignment in today_assignments %}
+      <div class="assignment-card priority-{{ assignment.pickup_request.priority }}">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+          <div style="flex:1;min-width:0">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="font-bold text-sm">{{ assignment.pickup_request.request_number }}</span>
+              <span class="badge badge-{{ assignment.pickup_request.status }}">
+                <span class="badge-dot"></span>{{ assignment.pickup_request.get_status_display }}
+              </span>
+              {% if assignment.pickup_request.priority == 'urgent' %}
+              <span class="badge" style="background:#fef2f2;color:#dc2626">Urgent</span>
+              {% endif %}
+            </div>
+            <div class="flex items-center gap-1 text-sm text-secondary" style="margin-bottom:4px">
+              <i class="bi bi-person"></i>
+              <span>{{ assignment.pickup_request.user.get_display_name }}</span>
+              <span class="text-muted">·</span>
+              <span>{{ assignment.pickup_request.user.phone }}</span>
+            </div>
+            <div class="flex items-center gap-1 text-sm text-muted">
+              <i class="bi bi-geo-alt"></i>
+              <span>{{ assignment.pickup_request.address|truncatechars:60 }}</span>
+            </div>
+            {% if assignment.scheduled_time_start %}
+            <div class="text-xs text-muted mt-1">⏰ {{ assignment.scheduled_time_start|time:"H:i" }} – {{ assignment.scheduled_time_end|time:"H:i" }}</div>
+            {% endif %}
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div class="text-sm font-bold" style="color:var(--color-primary)">{{ assignment.pickup_request.category.icon }} {{ assignment.pickup_request.category.name }}</div>
+            {% if assignment.pickup_request.latitude %}
+            <a href="https://www.google.com/maps/dir/?api=1&destination={{ assignment.pickup_request.latitude }},{{ assignment.pickup_request.longitude }}"
+               target="_blank" class="btn btn-info btn-sm" style="margin-top:8px">
+              <i class="bi bi-map"></i> Navigate
+            </a>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if assignment.pickup_request.status != 'collected' %}
+        <div class="steps-row">
+          <button class="step-action {% if assignment.pickup_request.status == 'assigned' %}active{% elif assignment.pickup_request.status in 'in_progress,collected' %}completed{% endif %}"
+                  onclick="openUpdate('{{ assignment.pk }}', 'in_progress')">
+            🚛 Start Pickup
+          </button>
+          <button class="step-action {% if assignment.pickup_request.status == 'collected' %}completed{% endif %}"
+                  onclick="openUpdate('{{ assignment.pk }}', 'collected')">
+            ✅ Mark Collected
+          </button>
+          <a href="{% url 'request_detail' assignment.pickup_request.pk %}" class="step-action">
+            👁 Details
+          </a>
+        </div>
+        {% else %}
+        <div style="margin-top:8px;display:flex;align-items:center;gap:6px;color:var(--color-success);font-size:12px;font-weight:600">
+          <i class="bi bi-check-circle-fill"></i> Completed at {{ assignment.completed_at|time:"H:i" }}
+        </div>
+        {% endif %}
+      </div>
+      {% empty %}
+      <div class="empty-state">
+        <div class="empty-state-icon">🎉</div>
+        <h3>No assignments today</h3>
+        <p>You have no pickups scheduled for today. Check back later.</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Right: Live Location + Stats -->
+  <div class="flex-col gap-4">
+    <!-- Live Location Card -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">My Live Location</div>
+        <div class="location-pulse">
+          <span class="live-dot" style="background:var(--brand-400)"></span>
+          <span id="location-status">Updating…</span>
+        </div>
+      </div>
+      <div id="mini-map" class="map-mini" style="background:var(--bg-surface-2);display:flex;align-items:center;justify-content:center;color:var(--text-muted)">
+        <div style="text-align:center">
+          <i class="bi bi-geo-alt" style="font-size:32px;display:block;margin-bottom:8px"></i>
+          <div class="text-sm">Locating…</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:var(--text-muted)" id="coords-display">
+        Coordinates: —
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="card">
+      <div class="card-title mb-4">My Stats</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="text-align:center;padding:16px;background:var(--bg-surface-2);border-radius:var(--radius-md)">
+          <div style="font-size:26px;font-weight:800;color:var(--color-primary)">{{ stats.total_completed }}</div>
+          <div style="font-size:12px;color:var(--text-muted)">Total completed</div>
+        </div>
+        <div style="text-align:center;padding:16px;background:var(--bg-surface-2);border-radius:var(--radius-md)">
+          <div style="font-size:26px;font-weight:800;color:var(--color-warning)">{{ stats.pending }}</div>
+          <div style="font-size:12px;color:var(--text-muted)">Pending today</div>
+        </div>
+      </div>
+      {% if profile %}
+      <div style="margin-top:12px;padding:12px;background:var(--bg-surface-2);border-radius:var(--radius-md)">
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+          <span class="text-muted">My Rating</span>
+          <span class="font-bold">⭐ {{ profile.rating }}/5.0</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:{{ profile.rating|floatformat:0 }}0%"></div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Recent assignments -->
+    {% if recent_assignments %}
+    <div class="card">
+      <div class="card-title mb-3">Recent History</div>
+      {% for a in recent_assignments|slice:":5" %}
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border-light)">
+        <span class="badge badge-{{ a.pickup_request.status }}" style="flex-shrink:0"><span class="badge-dot"></span>{{ a.pickup_request.get_status_display }}</span>
+        <div style="flex:1;min-width:0">
+          <div class="text-sm font-semibold truncate">{{ a.pickup_request.request_number }}</div>
+          <div class="text-xs text-muted">{{ a.pickup_request.address|truncatechars:40 }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Update Status Modal -->
+<div id="update-modal" style="display:none;position:fixed;inset:0;background:var(--bg-overlay);z-index:500;align-items:center;justify-content:center">
+  <div style="background:var(--bg-surface);border-radius:var(--radius-xl);padding:28px;width:100%;max-width:420px;margin:20px;box-shadow:var(--shadow-xl)">
+    <div style="font-size:18px;font-weight:800;margin-bottom:4px" id="modal-title">Update Status</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px" id="modal-desc"></p>
+    <form id="update-form" method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="hidden" name="status" id="modal-status">
+      <div class="form-group">
+        <label class="form-label">Notes (optional)</label>
+        <textarea name="notes" class="form-control" rows="2" placeholder="Any notes about this pickup…"></textarea>
+      </div>
+      <div class="form-group" id="weight-group">
+        <label class="form-label">Actual Weight (kg)</label>
+        <input type="number" name="weight_kg" class="form-control" step="0.5" min="0" placeholder="Measured weight in kg">
+      </div>
+      <div class="form-group" id="image-group">
+        <label class="form-label">Evidence Photo</label>
+        <input type="file" name="collection_image" class="form-control" accept="image/*">
+        <div class="form-hint">Take a photo of the collected waste as evidence</div>
+      </div>
+      <div class="flex gap-3 mt-4">
+        <button type="submit" class="btn btn-primary" style="flex:1" id="modal-submit">Confirm</button>
+        <button type="button" onclick="closeModal()" class="btn btn-secondary">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Live Location Tracking ──
+function startTracking() {
+  if (!navigator.geolocation) return;
+
+  function sendLocation(pos) {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    document.getElementById('coords-display').textContent = `📍 ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    document.getElementById('location-status').textContent = 'Live ✓';
+
+    fetch('{% url "update_location" %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken'),
+      },
+      body: JSON.stringify({
+        latitude: lat, longitude: lng,
+        speed: pos.coords.speed,
+        heading: pos.coords.heading,
+        accuracy: pos.coords.accuracy,
+      })
+    }).catch(() => {});
+  }
+
+  navigator.geolocation.watchPosition(sendLocation,
+    () => document.getElementById('location-status').textContent = 'GPS unavailable',
+    { enableHighAccuracy: true, maximumAge: 10000, timeout: 30000 }
+  );
+}
+startTracking();
+
+// ── Status Update ──
+function updateStatus(status, btn) {
+  fetch('/api/v1/accounts/update-collector-status/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+    body: JSON.stringify({ status })
+  }).then(() => {
+    document.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active-btn'));
+    btn.classList.add('active-btn');
+  }).catch(() => alert('Could not update status'));
+}
+
+// ── Assignment Update Modal ──
+let currentAssignment = null;
+function openUpdate(assignmentId, newStatus) {
+  currentAssignment = assignmentId;
+  const modal = document.getElementById('update-modal');
+  const form = document.getElementById('update-form');
+
+  document.getElementById('modal-status').value = newStatus;
+  form.action = `{% url 'update_pickup_status' '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', assignmentId);
+
+  if (newStatus === 'collected') {
+    document.getElementById('modal-title').textContent = '✅ Mark as Collected';
+    document.getElementById('modal-desc').textContent = 'Confirm you have successfully collected the waste. Optionally add weight and photo.';
+    document.getElementById('weight-group').style.display = '';
+    document.getElementById('image-group').style.display = '';
+    document.getElementById('modal-submit').textContent = 'Confirm Collection';
+  } else {
+    document.getElementById('modal-title').textContent = '🚛 Start Pickup';
+    document.getElementById('modal-desc').textContent = 'Mark this pickup as in progress. The resident will be notified.';
+    document.getElementById('weight-group').style.display = 'none';
+    document.getElementById('image-group').style.display = 'none';
+    document.getElementById('modal-submit').textContent = 'Start Pickup';
+  }
+
+  modal.style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('update-modal').style.display = 'none';
+}
+
+document.getElementById('update-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+function getCookie(name) {
+  let v = `; ${document.cookie}`, p = v.split(`; ${name}=`);
+  if (p.length === 2) return p.pop().split(';').shift();
+}
+</script>
+{% endblock %}

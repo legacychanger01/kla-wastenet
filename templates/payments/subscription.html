@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Subscription Plans{% endblock %}
+{% block breadcrumb_current %}Plans{% endblock %}
+{% block extra_styles %}
+.plan-hero{background:linear-gradient(135deg,var(--brand-800),var(--brand-600));color:white;border-radius:var(--radius-xl);padding:36px;text-align:center;margin-bottom:28px}
+.plans-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+.plan-card{background:var(--bg-surface);border:2px solid var(--border-color);border-radius:var(--radius-xl);padding:28px 22px;text-align:center;position:relative;transition:all .2s}
+.plan-card:hover{border-color:var(--color-primary);box-shadow:var(--shadow-lg);transform:translateY(-2px)}
+.plan-card.popular{border-color:var(--color-primary);box-shadow:0 0 0 4px rgba(22,115,57,.1)}
+.plan-card.popular::before{content:'Most Popular';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--color-primary);color:white;font-size:11px;font-weight:700;padding:4px 14px;border-radius:99px;white-space:nowrap}
+.plan-price{font-size:28px;font-weight:900;letter-spacing:-1px;margin:12px 0 4px;color:var(--text-primary)}
+.plan-period{font-size:12px;color:var(--text-muted)}
+.plan-features{list-style:none;margin:16px 0;text-align:left}
+.plan-features li{font-size:13px;color:var(--text-secondary);padding:5px 0;display:flex;align-items:center;gap:8px}
+.plan-features li::before{content:'✓';color:var(--color-primary);font-weight:700;flex-shrink:0}
+@media(max-width:900px){.plans-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.plans-grid{grid-template-columns:1fr}}
+{% endblock %}
+{% block content %}
+<div class="plan-hero">
+  <h1 style="font-size:28px;font-weight:800;margin-bottom:8px">Choose your plan</h1>
+  <p style="opacity:.8;max-width:420px;margin:0 auto">Upgrade for unlimited pickups, priority support, and exclusive recycling rewards.</p>
+  {% if active_sub %}<div style="margin-top:16px;padding:10px 20px;background:rgba(255,255,255,.15);border-radius:99px;display:inline-block;font-size:13px;font-weight:700">✓ You're on the {{ active_sub.get_plan_display }} · {{ active_sub.days_remaining }} days remaining</div>{% endif %}
+</div>
+<div class="plans-grid">
+  {% for plan in plans %}
+  <div class="plan-card {% if plan.recommended %}popular{% endif %} {% if active_sub and active_sub.plan == plan.key %}active{% endif %}">
+    <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted)">{{ plan.label }}</div>
+    <div class="plan-price">{% if plan.price == 0 %}Free{% else %}{{ plan.price|floatformat:0 }}{% endif %}</div>
+    <div class="plan-period">{% if plan.period %}UGX{{ plan.period }}{% else %}No subscription{% endif %}</div>
+    <ul class="plan-features">{% for f in plan.features %}<li>{{ f }}</li>{% endfor %}</ul>
+    {% if active_sub and active_sub.plan == plan.key %}
+    <div class="btn btn-secondary w-full" style="cursor:default">✓ Current Plan</div>
+    {% elif plan.price > 0 %}
+    <a href="{% url 'initiate_payment' %}?tab=subscription&plan={{ plan.key }}" class="btn {% if plan.recommended %}btn-primary{% else %}btn-secondary{% endif %} w-full">Get {{ plan.label }}</a>
+    {% else %}
+    <div class="btn btn-secondary w-full" style="cursor:default">Free Plan</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% if past_subs %}
+<div class="card">
+  <div class="card-title mb-4">Subscription History</div>
+  {% for sub in past_subs %}
+  <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-light)">
+    <div><div class="font-semibold text-sm">{{ sub.get_plan_display }}</div><div class="text-xs text-muted">{{ sub.start_date|date:"d M Y" }} – {{ sub.end_date|date:"d M Y" }}</div></div>
+    <span class="badge badge-{{ sub.status }}"><span class="badge-dot"></span>{{ sub.get_status_display }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

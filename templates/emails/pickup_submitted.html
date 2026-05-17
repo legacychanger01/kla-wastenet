@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+body{margin:0;padding:0;background:#f0f4f1;font-family:'Segoe UI',Arial,sans-serif;color:#0d1f14}
+.wrap{max-width:580px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08)}
+.header{background:linear-gradient(135deg,#0a4520,#1e8f47);padding:32px;text-align:center;color:white}
+.header h1{margin:0;font-size:22px;font-weight:800;letter-spacing:-0.3px}
+.header p{margin:8px 0 0;opacity:0.8;font-size:14px}
+.body{padding:32px}
+.body h2{font-size:18px;font-weight:700;margin:0 0 12px;color:#0d1f14}
+.body p{font-size:14px;line-height:1.65;color:#4a5e52;margin:0 0 16px}
+.info-box{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px;margin:20px 0}
+.info-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #d0f0db;font-size:13px}
+.info-row:last-child{border-bottom:none}
+.info-label{color:#4a5e52}
+.info-value{font-weight:700;color:#0d1f14}
+.btn{display:inline-block;background:#1e8f47;color:white;padding:12px 28px;border-radius:8px;font-weight:700;font-size:14px;text-decoration:none;margin:16px 0}
+.footer{background:#f8faf9;border-top:1px solid #d9e5dd;padding:20px 32px;text-align:center;font-size:12px;color:#7a9386}
+.footer a{color:#1e8f47}
+</style></head>
+<body style="background:#f0f4f1;padding:24px 0">
+<div class="wrap">
+  <div class="header">
+    <div style="font-size:36px;margin-bottom:8px">✅</div>
+    <h1>Request Submitted!</h1>
+    <p>KLA WasteNet — KCCA Smart Waste Platform</p>
+  </div>
+  <div class="body">
+    <h2>Hello, {{ user.first_name|default:user.username }}!</h2>
+    <p>Your waste pickup request has been successfully submitted. We will assign a collector to your request shortly.</p>
+    <div class="info-box">
+      <div class="info-row"><span class="info-label">Request Number</span><span class="info-value">{{ pickup.request_number }}</span></div>
+      <div class="info-row"><span class="info-label">Category</span><span class="info-value">{{ pickup.category.name }}</span></div>
+      <div class="info-row"><span class="info-label">Division</span><span class="info-value">{{ pickup.division|title }}</span></div>
+      <div class="info-row"><span class="info-label">Status</span><span class="info-value">Pending Assignment</span></div>
+      {% if pickup.preferred_date %}<div class="info-row"><span class="info-label">Preferred Date</span><span class="info-value">{{ pickup.preferred_date|date:"d M Y" }}</span></div>{% endif %}
+      <div class="info-row"><span class="info-label">Amount Due</span><span class="info-value">UGX {{ pickup.amount_due|floatformat:0 }}</span></div>
+    </div>
+    <p>You will receive another notification once a collector is assigned to your request. You can track your request status in real-time from your dashboard.</p>
+    <a href="{{ site_url }}/requests/{{ pickup.pk }}/" class="btn">View Request</a>
+  </div>
+  <div class="footer">
+    <p>© 2024 KLA WasteNet · Kampala Capital City Authority</p>
+    <p><a href="{{ site_url }}">klawastenet.go.ug</a> · <a href="{{ site_url }}/support/">Support</a></p>
+    <p style="margin-top:8px;font-size:11px">You're receiving this because you have notifications enabled. <a href="{{ site_url }}/accounts/profile/edit/">Manage preferences</a></p>
+  </div>
+</div>
+</body></html>

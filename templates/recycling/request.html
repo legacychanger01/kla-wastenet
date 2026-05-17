@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Request Recycling{% endblock %}
+{% block breadcrumb_current %}Recycling Request{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>♻️ Request Recycling Pickup</h1>
+  <p>Submit recyclable materials for collection and earn reward points</p>
+</div>
+<div class="grid" style="grid-template-columns:1.5fr 1fr;gap:20px">
+  <div class="card">
+    <form method="post" action="{% url 'recycling_request' %}" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Material Type <span class="required">*</span></label>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+          {% for val,label in MATERIAL_CHOICES %}
+          <label style="padding:12px 8px;border:2px solid var(--border-color);border-radius:var(--radius-md);text-align:center;cursor:pointer;transition:all .2s;font-size:12px;font-weight:600" class="mat-opt" onclick="selMat(this)">
+            <input type="radio" name="material_type" value="{{ val }}" style="display:none" required>
+            <div style="font-size:22px;margin-bottom:4px">
+              {% if val == 'plastic' %}🧴{% elif val == 'paper' %}📦{% elif val == 'glass' %}🫙{% elif val == 'metal' %}🔩{% elif val == 'electronics' %}💻{% elif val == 'organic' %}🌿{% else %}👕{% endif %}
+            </div>
+            {{ label }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Estimated Weight (kg) <span class="required">*</span></label>
+        <input type="number" name="estimated_weight_kg" class="form-control" step="0.1" min="0.1" placeholder="e.g. 5.5" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea name="description" class="form-control" rows="2" placeholder="Describe what you have for recycling..."></textarea>
+      </div>
+      <div class="grid grid-2">
+        <div class="form-group">
+          <label class="form-label">Division <span class="required">*</span></label>
+          <select name="division" class="form-select" required>
+            <option value="">Select division</option>
+            {% for val,label in DIVISIONS %}
+            <option value="{{ val }}" {% if user.division == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Preferred Date</label>
+          <input type="date" name="preferred_date" class="form-control" id="pref-date">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Pickup Address <span class="required">*</span></label>
+        <textarea name="address" class="form-control" rows="2" required>{{ user.address }}</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Photo (optional)</label>
+        <input type="file" name="image" class="form-control" accept="image/*">
+        <div class="form-hint">Upload a photo of the materials to help collectors identify them</div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-lg w-full">
+        <i class="bi bi-recycle"></i> Submit Recycling Request
+      </button>
+    </form>
+  </div>
+  <div class="flex-col gap-4">
+    <div class="card" style="background:linear-gradient(135deg,#78350f,#d97706);color:white">
+      <div style="font-size:11px;opacity:.75;text-transform:uppercase;letter-spacing:1px">Earn Reward Points</div>
+      <div style="font-size:36px;font-weight:900;margin:8px 0">10 pts/kg</div>
+      <div style="font-size:13px;opacity:.85">For every kilogram of material recycled, earn 10 reward points redeemable for discounts on future pickups.</div>
+    </div>
+    <div class="card">
+      <div class="card-title mb-3">Accepted Materials</div>
+      {% for val,label in MATERIAL_CHOICES %}
+      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;color:var(--text-secondary)">
+        <span style="color:var(--color-primary);font-weight:700">✓</span> {{ label }}
+      </div>
+      {% endfor %}
+    </div>
+    {% if campaigns %}
+    <div class="card" style="border-color:var(--brand-300)">
+      <div class="card-title mb-3">🌍 Active Campaigns</div>
+      {% for c in campaigns %}
+      <div style="padding:8px 0;border-bottom:1px solid var(--border-light)">
+        <div class="font-semibold text-sm">{{ c.title }}</div>
+        <div class="text-xs text-muted">Until {{ c.end_date|date:"d M Y" }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function selMat(el) {
+  document.querySelectorAll('.mat-opt').forEach(o => {
+    o.style.borderColor = 'var(--border-color)';
+    o.style.background = '';
+  });
+  el.style.borderColor = 'var(--color-primary)';
+  el.style.background = 'var(--brand-50)';
+  el.querySelector('input').checked = true;
+}
+const today = new Date().toISOString().split('T')[0];
+document.getElementById('pref-date').min = today;
+</script>
+{% endblock %}

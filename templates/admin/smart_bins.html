@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Smart Bin Monitoring{% endblock %}
+{% block breadcrumb_current %}Smart Bins{% endblock %}
+{% block extra_styles %}
+.bin-card{padding:14px;border:1.5px solid var(--border-color);border-radius:var(--radius-lg);transition:all .2s;background:var(--bg-surface)}
+.bin-card:hover{box-shadow:var(--shadow-md)}
+.bin-card.critical{border-color:#dc2626;background:#fef2f2}
+.bin-card.warning{border-color:#d97706;background:#fffbeb}
+.fill-bar{height:8px;border-radius:99px;background:var(--border-color);overflow:hidden;margin-top:8px}
+.fill-inner{height:100%;border-radius:99px;transition:width .5s}
+#map-container{width:100%;height:480px;border-radius:var(--radius-lg);border:1px solid var(--border-color)}
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-header-row">
+    <div><h1>Smart Bin Monitoring</h1><p>Real-time IoT sensor data across all divisions</p></div>
+    <div class="flex gap-2">
+      <span class="badge badge-cancelled" style="font-size:13px;padding:8px 14px">{{ critical_count }} Critical</span>
+      <a href="{% url 'smart_bins' %}" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-clockwise"></i> Refresh</a>
+    </div>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns:2fr 1fr;gap:20px">
+  <!-- Map -->
+  <div class="card">
+    <div class="card-title mb-3">Live Bin Map</div>
+    <div id="map-container">
+      <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted)">
+        <div style="text-align:center"><i class="bi bi-map" style="font-size:40px;display:block;margin-bottom:8px"></i>Map loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bin List -->
+  <div class="flex-col gap-3" style="max-height:520px;overflow-y:auto;padding-right:4px">
+    {% for bin in bins %}
+    <div class="bin-card {% if bin.fill_level >= 80 %}critical{% elif bin.fill_level >= 60 %}warning{% endif %}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="font-bold text-sm">{{ bin.bin_id }}</div>
+          <div class="text-xs text-muted mt-1">{{ bin.location_name }}</div>
+          <div class="text-xs text-muted">{{ bin.division|title }}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:20px;font-weight:800;color:{% if bin.fill_level >= 80 %}var(--color-danger){% elif bin.fill_level >= 60 %}var(--color-warning){% else %}var(--color-primary){% endif %}">{{ bin.fill_level }}%</div>
+          <span class="badge badge-{{ bin.status }}" style="font-size:10px"><span class="badge-dot"></span>{{ bin.get_status_display }}</span>
+        </div>
+      </div>
+      <div class="fill-bar">
+        <div class="fill-inner" style="width:{{ bin.fill_level }}%;background:{% if bin.fill_level >= 80 %}var(--color-danger){% elif bin.fill_level >= 60 %}var(--color-warning){% else %}var(--color-primary){% endif %}"></div>
+      </div>
+      {% if bin.last_emptied %}<div class="text-xs text-muted mt-2">Last emptied: {{ bin.last_emptied|timesince }} ago</div>{% endif %}
+    </div>
+    {% empty %}
+    <div class="empty-state" style="padding:40px"><div class="empty-state-icon">🗑️</div><h3>No smart bins configured</h3></div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+{% if GOOGLE_MAPS_KEY %}
+<script>
+const binsData = {{ bins_json|safe }};
+function initMap(){
+  const kampala = {lat:0.3476,lng:32.5825};
+  const map = new google.maps.Map(document.getElementById('map-container'),{zoom:13,center:kampala,mapTypeControl:false,streetViewControl:false});
+  binsData.forEach(bin=>{
+    if(!bin.latitude||!bin.longitude) return;
+    const color = bin.fill_level>=80?'#dc2626':bin.fill_level>=60?'#d97706':'#16a34a';
+    const marker = new google.maps.Marker({
+      position:{lat:parseFloat(bin.latitude),lng:parseFloat(bin.longitude)},
+      map,
+      title:`${bin.bin_id}: ${bin.fill_level}% full`,
+      icon:{path:google.maps.SymbolPath.CIRCLE,scale:14,fillColor:color,fillOpacity:0.9,strokeColor:'white',strokeWeight:2}
+    });
+    const iw = new google.maps.InfoWindow({content:`<div style="font-family:sans-serif;min-width:160px"><strong>${bin.bin_id}</strong><br><small>${bin.location_name}</small><br><span style="color:${color};font-weight:700">${bin.fill_level}% Full</span></div>`});
+    marker.addListener('click',()=>iw.open(map,marker));
+  });
+}
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_KEY }}&callback=initMap"></script>
+{% endif %}
+{% endblock %}

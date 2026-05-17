@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% block title %}Reports & Analytics{% endblock %}
+{% block breadcrumb_current %}Reports{% endblock %}
+
+{% block extra_styles %}
+.export-strip { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; padding: 16px 20px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); align-items: center; }
+.export-strip .label { font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-right: 4px; }
+.zone-table td { font-size: 13px; }
+.perf-rank { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; font-size: 11px; font-weight: 800; }
+.perf-rank.gold   { background: #fef3c7; color: #92400e; }
+.perf-rank.silver { background: #f3f4f6; color: #374151; }
+.perf-rank.bronze { background: #fef2f2; color: #7f1d1d; }
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-row">
+    <div>
+      <h1>Reports & Analytics</h1>
+      <p>Division performance, collector metrics, and revenue analysis</p>
+    </div>
+  </div>
+</div>
+
+<!-- Export Strip -->
+<div class="export-strip">
+  <span class="label"><i class="bi bi-download"></i> Export:</span>
+  <a href="{% url 'export_report' 'pdf' %}?type=requests" class="btn btn-danger btn-sm">
+    <i class="bi bi-file-earmark-pdf"></i> Requests PDF
+  </a>
+  <a href="{% url 'export_report' 'excel' %}?type=requests" class="btn btn-secondary btn-sm" style="color:#1d6f42">
+    <i class="bi bi-file-earmark-excel"></i> Requests Excel
+  </a>
+  <a href="{% url 'export_report' 'csv' %}?type=requests" class="btn btn-secondary btn-sm">
+    <i class="bi bi-filetype-csv"></i> Requests CSV
+  </a>
+  <span style="width:1px;height:24px;background:var(--border-color);margin:0 4px"></span>
+  <a href="{% url 'export_report' 'pdf' %}?type=payments" class="btn btn-danger btn-sm">
+    <i class="bi bi-file-earmark-pdf"></i> Payments PDF
+  </a>
+  <a href="{% url 'export_report' 'excel' %}?type=payments" class="btn btn-secondary btn-sm" style="color:#1d6f42">
+    <i class="bi bi-file-earmark-excel"></i> Payments Excel
+  </a>
+</div>
+
+<!-- Division Stats Table -->
+<div class="card mb-6">
+  <div class="card-header">
+    <div class="card-title">Division Performance Overview</div>
+  </div>
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Division</th>
+          <th>Total Requests</th>
+          <th>Collected</th>
+          <th>Pending</th>
+          <th>Cancelled</th>
+          <th>Collection Rate</th>
+          <th>Revenue (UGX)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for zone in zone_stats %}
+        <tr>
+          <td class="font-bold" style="text-transform:capitalize">
+            {{ zone.division|default:"Unknown" }}
+          </td>
+          <td class="font-semibold">{{ zone.total }}</td>
+          <td>
+            <span class="badge badge-collected">{{ zone.collected }}</span>
+          </td>
+          <td>
+            <span class="badge badge-pending">{{ zone.pending }}</span>
+          </td>
+          <td class="text-muted">{{ zone.cancelled }}</td>
+          <td>
+            {% if zone.total > 0 %}
+            {% widthratio zone.collected zone.total 100 as rate %}
+            <div class="flex items-center gap-8">
+              <div class="progress-bar" style="width:80px">
+                <div class="progress-fill" style="width:{{ rate }}%"></div>
+              </div>
+              <span class="text-sm font-bold" style="color:var(--color-primary)">{{ rate }}%</span>
+            </div>
+            {% else %}—{% endif %}
+          </td>
+          <td class="font-bold" style="color:var(--color-primary)">
+            {{ zone.revenue|floatformat:0|default:"0" }}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted)">No data yet</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Category Stats + Collector Performance -->
+<div class="grid" style="grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px">
+  <!-- Waste Category Breakdown -->
+  <div class="card">
+    <div class="card-title mb-4">Waste by Category</div>
+    {% for cat in category_stats %}
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-light)">
+      <span style="font-size:20px;width:28px;text-align:center">{{ cat.category__icon }}</span>
+      <div style="flex:1;min-width:0">
+        <div class="font-semibold text-sm truncate">{{ cat.category__name }}</div>
+        <div class="progress-bar mt-1">
+          {% if category_stats.0.total %}
+          {% widthratio cat.total category_stats.0.total 100 as pct %}
+          <div class="progress-fill" style="width:{{ pct }}%"></div>
+          {% endif %}
+        </div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div class="text-sm font-bold">{{ cat.total }}</div>
+        <div class="text-xs text-muted">{{ cat.collected }} done</div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="text-muted text-sm">No data yet</div>
+    {% endfor %}
+  </div>
+
+  <!-- Top Collectors -->
+  <div class="card">
+    <div class="card-title mb-4">Collector Performance</div>
+    {% for col in collector_stats %}
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-light)">
+      <span class="perf-rank {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% endif %}">
+        {{ forloop.counter }}
+      </span>
+      <div class="avatar avatar-sm">{{ col.get_initials }}</div>
+      <div style="flex:1;min-width:0">
+        <div class="font-semibold text-sm truncate">{{ col.get_display_name }}</div>
+        <div class="text-xs text-muted">
+          {{ col.total_collected }} collected / {{ col.total_assigned }} assigned
+          {% if col.avg_rating %}· ⭐ {{ col.avg_rating|floatformat:1 }}{% endif %}
+        </div>
+      </div>
+      <div style="text-align:right">
+        {% if col.total_assigned > 0 %}
+        {% widthratio col.total_collected col.total_assigned 100 as efficiency %}
+        <span class="badge {% if efficiency >= 80 %}badge-collected{% elif efficiency >= 50 %}badge-assigned{% else %}badge-cancelled{% endif %}">
+          {{ efficiency }}%
+        </span>
+        {% endif %}
+      </div>
+    </div>
+    {% empty %}
+    <div class="text-muted text-sm">No collector data yet</div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Monthly Revenue Chart -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">Monthly Revenue Trend</div>
+  </div>
+  <div class="chart-container" style="height:260px">
+    <canvas id="revenueChart"></canvas>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const monthlyRevenue = {{ monthly_revenue|safe }};
+
+const ctx = document.getElementById('revenueChart').getContext('2d');
+new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: monthlyRevenue.map(d => {
+      const date = new Date(d.month);
+      return date.toLocaleDateString('en-UG', { month: 'short', year: '2-digit' });
+    }),
+    datasets: [
+      {
+        label: 'Revenue (UGX)',
+        data: monthlyRevenue.map(d => d.total || 0),
+        backgroundColor: 'rgba(30,143,71,0.85)',
+        borderRadius: 8,
+        borderWidth: 0,
+        yAxisID: 'y',
+      },
+      {
+        label: 'Transactions',
+        data: monthlyRevenue.map(d => d.count || 0),
+        type: 'line',
+        borderColor: '#2563eb',
+        backgroundColor: 'rgba(37,99,235,0.08)',
+        borderWidth: 2.5,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 4,
+        yAxisID: 'y1',
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { position: 'top' },
+      tooltip: {
+        callbacks: {
+          label: ctx => ctx.datasetIndex === 0
+            ? `Revenue: UGX ${(ctx.raw || 0).toLocaleString()}`
+            : `Transactions: ${ctx.raw || 0}`
+        }
+      }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+      y: {
+        position: 'left',
+        grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--border-light') },
+        ticks: {
+          font: { size: 10 },
+          callback: v => v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(0)}K` : v
+        }
+      },
+      y1: {
+        position: 'right',
+        grid: { display: false },
+        ticks: { font: { size: 10 } }
+      }
+    }
+  }
+});
+</script>
+{% endblock %}

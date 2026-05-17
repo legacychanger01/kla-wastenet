@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Support Tickets{% endblock %}
+{% block breadcrumb_current %}Support{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-header-row">
+    <div><h1>Support Tickets</h1><p>Get help with any issues or queries</p></div>
+    <a href="{% url 'new_ticket' %}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> New Ticket</a>
+  </div>
+</div>
+<div class="card">
+  {% for ticket in tickets %}
+  <a href="{% url 'ticket_detail' ticket.pk %}" style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border-light);text-decoration:none;color:inherit;transition:all .2s" class="ticket-row">
+    <div style="width:10px;height:10px;border-radius:50%;flex-shrink:0;background:{% if ticket.status == 'open' %}var(--color-danger){% elif ticket.status == 'in_progress' %}var(--color-warning){% elif ticket.status == 'resolved' %}var(--color-success){% else %}var(--text-muted){% endif %}"></div>
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span class="font-bold text-sm" style="font-family:monospace">{{ ticket.ticket_number }}</span>
+        <span class="badge badge-{{ ticket.status }}"><span class="badge-dot"></span>{{ ticket.get_status_display }}</span>
+        <span class="badge" style="background:var(--bg-surface-2);color:var(--text-secondary);font-size:11px">{{ ticket.get_category_display }}</span>
+        {% if ticket.priority == 'urgent' %}<span class="badge" style="background:#fef2f2;color:#dc2626;font-size:11px">🔴 Urgent</span>{% elif ticket.priority == 'high' %}<span class="badge" style="background:#fffbeb;color:#d97706;font-size:11px">🟡 High</span>{% endif %}
+      </div>
+      <div class="font-semibold text-sm mt-1">{{ ticket.subject }}</div>
+      <div class="text-xs text-muted mt-1">
+        {% if user.is_admin %}{{ ticket.user.get_display_name }} · {% endif %}
+        {{ ticket.created_at|timesince }} ago
+        {% if ticket.assigned_to %} · Assigned to {{ ticket.assigned_to.get_display_name }}{% endif %}
+      </div>
+    </div>
+    <i class="bi bi-chevron-right" style="color:var(--text-muted);flex-shrink:0"></i>
+  </a>
+  {% empty %}
+  <div class="empty-state" style="padding:40px">
+    <div class="empty-state-icon">🎫</div>
+    <h3>No support tickets</h3>
+    <p>Need help? Submit a ticket and our team will respond within 24 hours.</p>
+    <a href="{% url 'new_ticket' %}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Open a Ticket</a>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

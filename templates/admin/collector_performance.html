@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Collector Performance{% endblock %}
+{% block breadcrumb_current %}Collector Performance{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Collector Performance</h1><p>Rankings and metrics for all active collectors</p></div>
+<div class="card">
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead><tr><th>Rank</th><th>Collector</th><th>Total Assigned</th><th>Completed</th><th>This Month</th><th>Completion Rate</th></tr></thead>
+      <tbody>
+        {% for c in performance %}
+        <tr>
+          <td class="font-bold" style="color:{% if forloop.counter == 1 %}#f59e0b{% elif forloop.counter == 2 %}#9ca3af{% elif forloop.counter == 3 %}#d97706{% else %}var(--text-muted){% endif %}">
+            {% if forloop.counter <= 3 %}{% if forloop.counter == 1 %}🥇{% elif forloop.counter == 2 %}🥈{% else %}🥉{% endif %}{% else %}#{{ forloop.counter }}{% endif %}
+          </td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="avatar avatar-sm">{{ c.first_name|first|upper }}{{ c.last_name|first|upper }}</div>
+              <div class="font-semibold text-sm">{{ c.first_name }} {{ c.last_name }}</div>
+            </div>
+          </td>
+          <td>{{ c.total }}</td>
+          <td class="font-semibold text-primary-color">{{ c.completed }}</td>
+          <td>{{ c.this_month }}</td>
+          <td>
+            {% if c.total > 0 %}
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:{% widthratio c.completed c.total 100 %}%"></div></div>
+              <span class="text-sm font-bold">{% widthratio c.completed c.total 100 %}%</span>
+            </div>
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6"><div class="empty-state" style="padding:40px"><div class="empty-state-icon">🚛</div><h3>No collector data</h3></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

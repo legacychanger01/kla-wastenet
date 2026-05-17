@@ -1,0 +1,105 @@
+name: KLA WasteNet Pro — CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.12"
+  DJANGO_SETTINGS_MODULE: config.settings.development
+  SECRET_KEY: ci-test-secret-key-do-not-use-in-production
+  DB_ENGINE: django.db.backends.sqlite3
+  DB_NAME: ":memory:"
+  DB_USER: ""
+  DB_PASSWORD: ""
+  DB_HOST: ""
+  DB_PORT: ""
+  REDIS_URL: redis://localhost:6379/0
+  CELERY_BROKER_URL: redis://localhost:6379/1
+  CELERY_RESULT_BACKEND: redis://localhost:6379/2
+
+jobs:
+  # ── Test Job ──────────────────────────────────────────────────────────────
+  test:
+    name: 🧪 Run Tests
+    runs-on: ubuntu-22.04
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: 📦 Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: ✅ Run Django system checks
+        run: python manage.py check --deploy 2>/dev/null || python manage.py check
+
+      - name: 🗄️ Run migrations (SQLite for CI)
+        run: |
+          python manage.py migrate --run-syncdb
+
+      - name: 🧪 Run tests with coverage
+        run: |
+          coverage run -m pytest tests/ -v --tb=short
+          coverage report --min-coverage=60
+          coverage xml
+
+      - name: 📊 Upload coverage report
+        uses: codecov/codecov-action@v4
+        with:
+          file: coverage.xml
+          fail_ci_if_error: false
+
+  # ── Lint Job ──────────────────────────────────────────────────────────────
+  lint:
+    name: 🔍 Code Quality
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install black isort flake8
+      - name: Black formatting check
+        run: black --check --diff .
+      - name: isort import order check
+        run: isort --check-only --diff .
+      - name: flake8 lint
+        run: flake8 . --max-line-length=120 --exclude=migrations,venv,staticfiles
+
+  # ── Security Scan ─────────────────────────────────────────────────────────
+  security:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pip install bandit safety
+      - name: Bandit security analysis
+        run: bandit -r apps/ -ll -x tests/
+      - name: Safety dependency check
+        run: safety check --file requirements.txt --short-report || true
+

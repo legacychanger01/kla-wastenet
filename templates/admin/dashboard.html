@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block breadcrumb_current %}Dashboard{% endblock %}
+
+{% block extra_styles %}
+.metric-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px; }
+.chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+.bottom-row { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+.request-row { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border-light); }
+.request-row:last-child { border-bottom: none; }
+.collector-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border-light); }
+.collector-item:last-child { border-bottom: none; }
+.zone-bar-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; font-size: 13px; }
+.zone-name { width: 100px; color: var(--text-secondary); font-weight: 600; text-transform: capitalize; flex-shrink: 0; }
+.zone-bar { flex: 1; height: 8px; background: var(--border-color); border-radius: var(--radius-full); overflow: hidden; }
+.zone-fill { height: 100%; background: linear-gradient(90deg, var(--brand-600), var(--brand-300)); border-radius: var(--radius-full); }
+.zone-count { min-width: 40px; text-align: right; font-size: 12px; font-weight: 700; color: var(--text-primary); }
+
+.bin-alert { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: var(--radius-md); background: rgba(220,38,38,0.06); border: 1px solid rgba(220,38,38,0.15); margin-bottom: 8px; }
+.bin-fill-ring { width: 40px; height: 40px; position: relative; flex-shrink: 0; }
+.bin-label { font-size: 12px; }
+.live-dot { width: 8px; height: 8px; background: var(--brand-400); border-radius: 50%; animation: pulse 2s infinite; display: inline-block; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.3)} }
+
+.revenue-card { background: linear-gradient(135deg, var(--brand-800), var(--brand-600)); color: white; border-radius: var(--radius-xl); padding: 28px; position: relative; overflow: hidden; }
+.revenue-card::after { content: ''; position: absolute; top: -40%; right: -10%; width: 200px; height: 200px; background: rgba(255,255,255,0.05); border-radius: 50%; }
+.revenue-card .amount { font-size: 36px; font-weight: 800; letter-spacing: -1.5px; margin: 8px 0 4px; }
+.revenue-card .label { font-size: 12px; opacity: 0.7; text-transform: uppercase; letter-spacing: 1px; }
+.revenue-card .change { font-size: 13px; opacity: 0.9; }
+
+@media (max-width: 1200px) { .metric-row { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 900px) { .chart-row, .bottom-row { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .metric-row { grid-template-columns: repeat(2, 1fr); } }
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-row">
+    <div>
+      <h1>Admin Dashboard</h1>
+      <p>Kampala waste operations at a glance · <span class="live-dot"></span> Live data</p>
+    </div>
+    <div class="flex gap-2">
+      <a href="{% url 'manage_requests' %}?status=pending" class="btn btn-secondary btn-sm">
+        <i class="bi bi-list-task"></i> Pending Requests
+      </a>
+      <a href="{% url 'optimize_routes' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-map"></i> Optimize Routes
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Revenue Hero + Stats Grid -->
+<div class="metric-row">
+  <div class="revenue-card" style="grid-column: span 2;">
+    <div class="label">Monthly Revenue</div>
+    <div class="amount">UGX {{ stats.revenue_month|floatformat:0 }}</div>
+    <div class="change"><i class="bi bi-arrow-up-right"></i> This month's collections</div>
+  </div>
+
+  <div class="stat-card green">
+    <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+    <div class="stat-value">{{ stats.total_residents }}</div>
+    <div class="stat-label">Registered Residents</div>
+  </div>
+  <div class="stat-card blue">
+    <div class="stat-icon"><i class="bi bi-truck"></i></div>
+    <div class="stat-value">{{ stats.total_collectors }}</div>
+    <div class="stat-label">Active Collectors</div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-icon"><i class="bi bi-clock-history"></i></div>
+    <div class="stat-value">{{ stats.pending }}</div>
+    <div class="stat-label">Pending Requests</div>
+  </div>
+</div>
+
+<!-- Second metrics row -->
+<div class="grid grid-4 mb-6">
+  <div class="stat-card green">
+    <div class="stat-icon"><i class="bi bi-check2-circle"></i></div>
+    <div class="stat-value">{{ stats.collected_today }}</div>
+    <div class="stat-label">Collected Today</div>
+  </div>
+  <div class="stat-card blue">
+    <div class="stat-icon"><i class="bi bi-calendar-week"></i></div>
+    <div class="stat-value">{{ stats.collected_week }}</div>
+    <div class="stat-label">Collected This Week</div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-icon"><i class="bi bi-arrow-right-circle"></i></div>
+    <div class="stat-value">{{ stats.in_progress }}</div>
+    <div class="stat-label">In Progress</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-icon"><i class="bi bi-exclamation-triangle"></i></div>
+    <div class="stat-value">{{ stats.critical_bins }}</div>
+    <div class="stat-label">Critical Smart Bins</div>
+  </div>
+</div>
+
+<!-- Charts Row -->
+<div class="chart-row">
+  <!-- Monthly Trend Chart -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Request Volume Trend</div>
+        <div class="card-subtitle">Last 6 months</div>
+      </div>
+      <a href="{% url 'reports' %}" class="btn btn-ghost btn-sm">View report <i class="bi bi-arrow-right"></i></a>
+    </div>
+    <div class="chart-container" style="height:220px">
+      <canvas id="trendChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Zone Distribution -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Requests by Division</div>
+        <div class="card-subtitle">All time distribution</div>
+      </div>
+    </div>
+    <div class="chart-container" style="height:160px;margin-bottom:16px">
+      <canvas id="zoneChart"></canvas>
+    </div>
+    <div>
+      {% for zone in zone_data %}
+      <div class="zone-bar-row">
+        <span class="zone-name">{{ zone.division }}</span>
+        <div class="zone-bar">
+          <div class="zone-fill" style="width:{{ zone.percentage }}%"></div>
+        </div>
+        <span class="zone-count">{{ zone.count }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Row -->
+<div class="bottom-row">
+  <!-- Recent Requests -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Recent Pickup Requests</div>
+      <a href="{% url 'manage_requests' %}" class="btn btn-secondary btn-sm">Manage all</a>
+    </div>
+    <div>
+      {% for req in recent_requests %}
+      <div class="request-row">
+        <div class="avatar avatar-sm" style="background:linear-gradient(135deg,#{{ req.category.color|default:'1e8f47' }},#0d5c2c)">
+          <span style="font-size:16px">{{ req.category.icon }}</span>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div class="flex items-center gap-2">
+            <span class="font-semibold text-sm">{{ req.request_number }}</span>
+            <span class="badge badge-{{ req.status }}">
+              <span class="badge-dot"></span>{{ req.get_status_display }}
+            </span>
+            {% if req.priority == 'urgent' %}
+            <span class="badge" style="background:#fef2f2;color:#dc2626">Urgent</span>
+            {% endif %}
+          </div>
+          <div class="text-xs text-muted mt-1 truncate">{{ req.user.get_display_name }} · {{ req.division }} · {{ req.created_at|timesince }} ago</div>
+        </div>
+        <div class="flex gap-2">
+          {% if req.status == 'pending' %}
+          <a href="{% url 'assign_request' req.pk %}" class="btn btn-primary btn-sm">Assign</a>
+          {% endif %}
+          <a href="{% url 'request_detail' req.pk %}" class="btn btn-secondary btn-sm"><i class="bi bi-eye"></i></a>
+        </div>
+      </div>
+      {% empty %}
+      <div class="empty-state">
+        <div class="empty-state-icon">📋</div>
+        <p>No requests yet</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Right column: Top collectors + Smart bins -->
+  <div class="flex-col gap-4">
+    <!-- Top Collectors -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Top Collectors</div>
+        <a href="{% url 'manage_users' %}?role=collector" class="btn btn-ghost btn-sm">View all</a>
+      </div>
+      {% for collector in top_collectors %}
+      <div class="collector-item">
+        <div class="avatar avatar-sm">{{ collector.get_initials }}</div>
+        <div style="flex:1;min-width:0">
+          <div class="font-semibold text-sm truncate">{{ collector.get_display_name }}</div>
+          <div class="text-xs text-muted">{{ collector.division|default:'All divisions' }}</div>
+        </div>
+        <div class="text-sm font-bold text-primary-color">{{ collector.completed }}</div>
+      </div>
+      {% empty %}
+      <div class="text-sm text-muted">No collectors yet</div>
+      {% endfor %}
+    </div>
+
+    <!-- Critical Bins -->
+    {% if critical_bins %}
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">⚠️ Critical Smart Bins</div>
+        <a href="{% url 'smart_bins' %}" class="btn btn-ghost btn-sm">Map view</a>
+      </div>
+      {% for bin in critical_bins %}
+      <div class="bin-alert">
+        <div>
+          <div class="font-semibold text-sm">{{ bin.bin_id }}</div>
+          <div class="text-xs text-muted">{{ bin.location_name }}</div>
+        </div>
+        <div class="ml-auto">
+          <span class="badge badge-cancelled">{{ bin.fill_level }}% Full</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Category breakdown -->
+    <div class="card">
+      <div class="card-title mb-4">Waste by Category</div>
+      <div class="chart-container" style="height:180px">
+        <canvas id="categoryChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Prepare data from Django context ──
+const monthlyData = {{ monthly_trend|safe }};
+const zoneData = {{ zone_data|safe }};
+const categoryData = {{ category_data|safe }};
+
+// ── Monthly Trend Chart ──
+const trendCtx = document.getElementById('trendChart').getContext('2d');
+new Chart(trendCtx, {
+  type: 'line',
+  data: {
+    labels: monthlyData.map(d => {
+      const date = new Date(d.month);
+      return date.toLocaleDateString('en-UG', { month: 'short', year: '2-digit' });
+    }),
+    datasets: [{
+      label: 'Pickup Requests',
+      data: monthlyData.map(d => d.requests || d.count || 0),
+      borderColor: '#1e8f47',
+      backgroundColor: 'rgba(30,143,71,0.08)',
+      borderWidth: 2.5,
+      fill: true,
+      tension: 0.4,
+      pointBackgroundColor: '#1e8f47',
+      pointRadius: 4,
+      pointHoverRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+      y: { grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--border-light') }, ticks: { font: { size: 11 } } }
+    }
+  }
+});
+
+// ── Zone Doughnut Chart ──
+const zoneCtx = document.getElementById('zoneChart').getContext('2d');
+const zoneColors = ['#1e8f47','#2da852','#4fc46e','#8fdda5','#d0f0db'];
+new Chart(zoneCtx, {
+  type: 'doughnut',
+  data: {
+    labels: zoneData.map(z => z.division ? z.division.charAt(0).toUpperCase() + z.division.slice(1) : z.division),
+    datasets: [{
+      data: zoneData.map(z => z.count),
+      backgroundColor: zoneColors,
+      borderWidth: 0,
+      hoverOffset: 6,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '65%',
+    plugins: {
+      legend: { position: 'right', labels: { font: { size: 11 }, boxWidth: 10, padding: 8 } }
+    }
+  }
+});
+
+// ── Category Bar Chart ──
+const catCtx = document.getElementById('categoryChart').getContext('2d');
+new Chart(catCtx, {
+  type: 'bar',
+  data: {
+    labels: categoryData.map(c => c['category__name'] || 'Unknown'),
+    datasets: [{
+      label: 'Requests',
+      data: categoryData.map(c => c.count),
+      backgroundColor: [
+        'rgba(30,143,71,0.8)', 'rgba(37,99,235,0.8)',
+        'rgba(217,119,6,0.8)', 'rgba(124,58,237,0.8)',
+        'rgba(220,38,38,0.8)', 'rgba(5,150,105,0.8)',
+      ],
+      borderRadius: 6,
+      borderWidth: 0,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+      y: { grid: { display: false }, ticks: { font: { size: 10 } } }
+    }
+  }
+});
+
+// ── Real-time updates ──
+function updatePendingCount() {
+  fetch('/api/v1/waste/requests/?status=pending&page_size=1', {
+    headers: { 'Accept': 'application/json' }
+  }).then(r => r.json()).then(data => {
+    const badge = document.getElementById('pending-count-badge');
+    if (badge && data.count > 0) {
+      badge.textContent = data.count;
+      badge.style.display = '';
+    }
+  }).catch(() => {});
+}
+updatePendingCount();
+setInterval(updatePendingCount, 30000);
+</script>
+{% endblock %}

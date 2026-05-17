@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Edit Profile{% endblock %}
+{% block breadcrumb_current %}Edit Profile{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Edit Profile</h1></div>
+<div style="max-width:680px">
+  <form method="post" action="{% url 'profile_edit' %}" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="card mb-4">
+      <div class="card-title mb-4">Personal Information</div>
+      <div class="grid grid-2">
+        <div class="form-group"><label class="form-label">First Name</label><input type="text" name="first_name" class="form-control" value="{{ user.first_name }}"></div>
+        <div class="form-group"><label class="form-label">Last Name</label><input type="text" name="last_name" class="form-control" value="{{ user.last_name }}"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Phone Number</label><input type="tel" name="phone" class="form-control" value="{{ user.phone }}" placeholder="+256700000000"></div>
+      <div class="form-group"><label class="form-label">Division</label>
+        <select name="division" class="form-select">
+          <option value="">-- Select --</option>
+          {% for val, label in DIVISIONS %}<option value="{{ val }}" {% if user.division == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Address</label><textarea name="address" class="form-control" rows="2">{{ user.address }}</textarea></div>
+      <div class="form-group"><label class="form-label">Bio</label><textarea name="bio" class="form-control" rows="2" placeholder="Brief description about you…" maxlength="500">{{ user.bio }}</textarea></div>
+      <div class="form-group"><label class="form-label">Profile Picture</label><input type="file" name="avatar" class="form-control" accept="image/*"></div>
+    </div>
+    <div class="card mb-4">
+      <div class="card-title mb-4">Notification Preferences</div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
+          <input type="checkbox" name="email_notifications" style="width:18px;height:18px;accent-color:var(--color-primary)" {% if user.email_notifications %}checked{% endif %}>
+          <div><div class="font-semibold text-sm">Email Notifications</div><div class="text-xs text-muted">Receive updates via email</div></div>
+        </label>
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
+          <input type="checkbox" name="sms_notifications" style="width:18px;height:18px;accent-color:var(--color-primary)" {% if user.sms_notifications %}checked{% endif %}>
+          <div><div class="font-semibold text-sm">SMS Notifications</div><div class="text-xs text-muted">Receive SMS alerts on your phone</div></div>
+        </label>
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
+          <input type="checkbox" name="dark_mode" style="width:18px;height:18px;accent-color:var(--color-primary)" {% if user.dark_mode %}checked{% endif %}>
+          <div><div class="font-semibold text-sm">Dark Mode</div><div class="text-xs text-muted">Use dark theme by default</div></div>
+        </label>
+      </div>
+    </div>
+    <div class="flex gap-3">
+      <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Save Changes</button>
+      <a href="{% url 'profile' %}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

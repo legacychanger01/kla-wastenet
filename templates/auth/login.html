@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+{% block title %}Sign In{% endblock %}
+
+{% block extra_styles %}
+* { box-sizing: border-box; }
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--bg-base);
+}
+.auth-visual {
+  background: linear-gradient(145deg, var(--brand-900) 0%, var(--brand-700) 50%, var(--brand-500) 100%);
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: flex-start;
+  padding: 60px;
+  position: relative;
+  overflow: hidden;
+}
+.auth-visual::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle at 30% 70%, rgba(79,196,110,0.15) 0%, transparent 50%),
+                    radial-gradient(circle at 80% 20%, rgba(143,221,165,0.1) 0%, transparent 40%);
+}
+.auth-visual-circles {
+  position: absolute; inset: 0; pointer-events: none;
+}
+.auth-visual-circles span {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.auth-logo { display: flex; align-items: center; gap: 14px; margin-bottom: 48px; position: relative; z-index: 1; }
+.auth-logo-icon { width: 52px; height: 52px; background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 26px; border: 1px solid rgba(255,255,255,0.2); }
+.auth-logo-text { color: white; }
+.auth-logo-text .name { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+.auth-logo-text .tagline { font-size: 12px; opacity: 0.6; letter-spacing: 0.5px; }
+.auth-headline { color: white; position: relative; z-index: 1; }
+.auth-headline h1 { font-size: 38px; font-weight: 800; letter-spacing: -1px; line-height: 1.15; margin-bottom: 16px; }
+.auth-headline h1 span { color: var(--brand-300); }
+.auth-headline p { opacity: 0.75; line-height: 1.7; font-size: 15px; max-width: 380px; }
+.auth-features { margin-top: 40px; display: flex; flex-direction: column; gap: 14px; position: relative; z-index: 1; }
+.auth-feature { display: flex; align-items: center; gap: 12px; color: rgba(255,255,255,0.85); font-size: 14px; }
+.auth-feature-icon { width: 32px; height: 32px; background: rgba(255,255,255,0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.auth-stats { display: flex; gap: 32px; margin-top: 48px; position: relative; z-index: 1; }
+.auth-stat { color: white; }
+.auth-stat .number { font-size: 28px; font-weight: 800; letter-spacing: -1px; }
+.auth-stat .label { font-size: 12px; opacity: 0.6; }
+
+.auth-form-side {
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  padding: 60px 48px;
+  background: var(--bg-surface);
+}
+.auth-form-wrap { width: 100%; max-width: 400px; }
+.auth-form-title { font-size: 26px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.5px; margin-bottom: 6px; }
+.auth-form-subtitle { font-size: 14px; color: var(--text-muted); margin-bottom: 32px; }
+.auth-divider { text-align: center; color: var(--text-muted); font-size: 13px; margin: 20px 0; position: relative; }
+.auth-divider::before, .auth-divider::after { content: ''; position: absolute; top: 50%; width: 45%; height: 1px; background: var(--border-color); }
+.auth-divider::before { left: 0; }
+.auth-divider::after { right: 0; }
+.auth-footer-link { text-align: center; font-size: 14px; color: var(--text-muted); margin-top: 24px; }
+.auth-footer-link a { color: var(--color-primary); font-weight: 600; }
+.password-toggle { position: relative; }
+.password-toggle .toggle-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; padding: 4px; }
+.password-toggle .toggle-btn:hover { color: var(--text-primary); }
+.password-toggle .form-control { padding-right: 44px; }
+
+@media (max-width: 900px) {
+  .auth-page { grid-template-columns: 1fr; }
+  .auth-visual { display: none; }
+  .auth-form-side { padding: 40px 24px; min-height: 100vh; }
+}
+{% endblock %}
+
+{% block public_content %}
+<div class="auth-page">
+  <!-- Visual Side -->
+  <div class="auth-visual">
+    <div class="auth-visual-circles">
+      <span style="width:400px;height:400px;top:-100px;left:-100px"></span>
+      <span style="width:300px;height:300px;bottom:50px;right:-80px"></span>
+      <span style="width:200px;height:200px;top:40%;left:60%"></span>
+    </div>
+
+    <div class="auth-logo">
+      <div class="auth-logo-icon">♻️</div>
+      <div class="auth-logo-text">
+        <div class="name">KLA WasteNet</div>
+        <div class="tagline">KCCA Smart Platform</div>
+      </div>
+    </div>
+
+    <div class="auth-headline">
+      <h1>Smarter waste<br>management for<br><span>Kampala</span></h1>
+      <p>Real-time tracking, mobile money payments, and AI-powered scheduling — all in one platform built for KCCA.</p>
+    </div>
+
+    <div class="auth-features">
+      <div class="auth-feature">
+        <div class="auth-feature-icon">📍</div>
+        <span>Live GPS tracking of your waste collector</span>
+      </div>
+      <div class="auth-feature">
+        <div class="auth-feature-icon">📱</div>
+        <span>Pay via MTN MoMo, Airtel Money, or card</span>
+      </div>
+      <div class="auth-feature">
+        <div class="auth-feature-icon">♻️</div>
+        <span>Earn reward points for recycling</span>
+      </div>
+      <div class="auth-feature">
+        <div class="auth-feature-icon">🤖</div>
+        <span>AI-powered pickup scheduling</span>
+      </div>
+    </div>
+
+    <div class="auth-stats">
+      <div class="auth-stat">
+        <div class="number">50K+</div>
+        <div class="label">Residents</div>
+      </div>
+      <div class="auth-stat">
+        <div class="number">200+</div>
+        <div class="label">Collectors</div>
+      </div>
+      <div class="auth-stat">
+        <div class="number">5</div>
+        <div class="label">Divisions</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form Side -->
+  <div class="auth-form-side">
+    <div class="auth-form-wrap">
+      <h2 class="auth-form-title">Welcome back</h2>
+      <p class="auth-form-subtitle">Sign in to your KLA WasteNet account</p>
+
+      {% if messages %}
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}" data-auto-close="3000" style="margin-bottom:16px">
+        <span class="alert-icon"><i class="bi bi-{% if message.tags == 'danger' %}x-circle-fill{% else %}info-circle-fill{% endif %}"></i></span>
+        <div class="alert-body">{{ message }}</div>
+      </div>
+      {% endfor %}
+      {% endif %}
+
+      <form method="post" action="{% url 'login' %}?next={{ request.GET.next }}" autocomplete="on">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label" for="username">Username or Email</label>
+          <div class="input-group">
+            <span class="input-addon left"><i class="bi bi-person"></i></span>
+            <input type="text" name="username" id="username" class="form-control"
+                   placeholder="Enter your username" autocomplete="username"
+                   value="{{ request.POST.username }}" autofocus required
+                   style="border-radius:0 var(--radius-md) var(--radius-md) 0;border-left:none">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+            <label class="form-label" for="password" style="margin-bottom:0">Password</label>
+            <a href="{% url 'password_reset' %}" style="font-size:12px;color:var(--color-primary)">Forgot password?</a>
+          </div>
+          <div class="password-toggle">
+            <div class="input-group">
+              <span class="input-addon left"><i class="bi bi-lock"></i></span>
+              <input type="password" name="password" id="password" class="form-control"
+                     placeholder="Your password" autocomplete="current-password" required
+                     style="border-radius:0 var(--radius-md) var(--radius-md) 0;border-left:none;padding-right:44px">
+            </div>
+            <button type="button" class="toggle-btn" onclick="togglePassword()" style="right:10px">
+              <i class="bi bi-eye" id="pwd-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+          <input type="checkbox" id="remember" name="remember" style="width:16px;height:16px;accent-color:var(--color-primary)">
+          <label for="remember" style="font-size:13px;color:var(--text-secondary);cursor:pointer">Keep me signed in</label>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg w-full" id="login-btn">
+          <i class="bi bi-box-arrow-in-right"></i>
+          Sign In
+        </button>
+      </form>
+
+      <div class="auth-divider">or</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <a href="{% url 'register' %}" class="btn btn-secondary">
+          <i class="bi bi-person-plus"></i> Register
+        </a>
+        <a href="/api/docs/" class="btn btn-secondary" target="_blank">
+          <i class="bi bi-code-slash"></i> API Docs
+        </a>
+      </div>
+
+      <div class="auth-footer-link">
+        Don't have an account? <a href="{% url 'register' %}">Create one free</a>
+      </div>
+
+      <!-- Demo credentials hint for dev -->
+      {% if debug %}
+      <div style="margin-top:24px;padding:14px;background:var(--bg-surface-2);border-radius:var(--radius-md);border:1px solid var(--border-color)">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:8px">Demo Credentials</div>
+        <div style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--text-secondary)">
+          <div>Admin: <code>admin</code> / <code>admin123</code></div>
+          <div>Resident: <code>resident</code> / <code>resident123</code></div>
+          <div>Collector: <code>collector</code> / <code>collector123</code></div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function togglePassword() {
+  const pwd = document.getElementById('password');
+  const eye = document.getElementById('pwd-eye');
+  if (pwd.type === 'password') {
+    pwd.type = 'text';
+    eye.className = 'bi bi-eye-slash';
+  } else {
+    pwd.type = 'password';
+    eye.className = 'bi bi-eye';
+  }
+}
+
+// Loading state on submit
+document.querySelector('form').addEventListener('submit', function() {
+  const btn = document.getElementById('login-btn');
+  btn.innerHTML = '<span class="spinner"></span> Signing in…';
+  btn.disabled = true;
+});
+</script>
+{% endblock %}

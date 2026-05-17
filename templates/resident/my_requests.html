@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}My Requests{% endblock %}
+{% block breadcrumb_current %}My Requests{% endblock %}
+
+{% block extra_styles %}
+.req-card { background: var(--bg-surface); border: 1.5px solid var(--border-color); border-radius: var(--radius-lg); padding: 18px 20px; margin-bottom: 12px; transition: all var(--transition-base); display: flex; gap: 16px; align-items: flex-start; }
+.req-card:hover { border-color: var(--color-primary); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.req-cat-icon { width: 46px; height: 46px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+.req-timeline { display: flex; gap: 0; margin-top: 10px; }
+.req-step { flex: 1; text-align: center; position: relative; }
+.req-step::before { content: ''; position: absolute; top: 10px; left: 50%; right: -50%; height: 2px; background: var(--border-color); z-index: 0; }
+.req-step:last-child::before { display: none; }
+.req-step-dot { width: 20px; height: 20px; border-radius: 50%; background: var(--border-color); border: 2px solid var(--bg-surface); margin: 0 auto 4px; position: relative; z-index: 1; transition: all 0.3s; }
+.req-step.done .req-step-dot { background: var(--color-primary); }
+.req-step.active .req-step-dot { background: var(--color-warning); animation: pulse-dot 1.5s infinite; }
+.req-step-label { font-size: 10px; color: var(--text-muted); }
+.req-step.done .req-step-label { color: var(--color-primary); font-weight: 600; }
+@keyframes pulse-dot { 0%,100%{transform:scale(1)} 50%{transform:scale(1.3)} }
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-row">
+    <div>
+      <h1>My Pickup Requests</h1>
+      <p>Track your waste collection history</p>
+    </div>
+    <a href="{% url 'make_request' %}" class="btn btn-primary">
+      <i class="bi bi-plus-lg"></i> New Request
+    </a>
+  </div>
+</div>
+
+<!-- Filter tabs -->
+<div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
+  {% for val, label in STATUS_CHOICES %}
+  <a href="?status={{ val }}"
+     class="btn btn-sm {% if val == status_filter %}btn-primary{% else %}btn-secondary{% endif %}">
+    {{ label }}
+  </a>
+  {% endfor %}
+  {% if status_filter %}
+  <a href="{% url 'my_requests' %}" class="btn btn-ghost btn-sm">
+    <i class="bi bi-x"></i> All
+  </a>
+  {% else %}
+  <span class="btn btn-primary btn-sm">All</span>
+  {% endif %}
+</div>
+
+{% for req in requests %}
+<a href="{% url 'request_detail' req.pk %}" class="req-card" style="text-decoration:none;color:inherit">
+  <div class="req-cat-icon" style="background:{{ req.category.color|default:'#e8f5e9' }}22">
+    {{ req.category.icon }}
+  </div>
+
+  <div style="flex:1;min-width:0">
+    <div class="flex items-center gap-2 mb-1">
+      <span class="font-bold" style="font-family:monospace">{{ req.request_number }}</span>
+      <span class="badge badge-{{ req.status }}">
+        <span class="badge-dot"></span>{{ req.get_status_display }}
+      </span>
+      {% if req.is_overdue and req.status != 'collected' %}
+      <span class="badge" style="background:#fef2f2;color:#dc2626">⚠ Overdue</span>
+      {% endif %}
+    </div>
+
+    <div class="flex items-center gap-3 text-sm text-muted">
+      <span>{{ req.category.name }}</span>
+      <span>·</span>
+      <span style="text-transform:capitalize">{{ req.division }}</span>
+      <span>·</span>
+      <span>{{ req.created_at|date:"d M Y" }}</span>
+    </div>
+
+    <div class="text-sm text-muted mt-1 truncate" style="max-width:500px">
+      <i class="bi bi-geo-alt" style="font-size:11px"></i> {{ req.address|truncatechars:60 }}
+    </div>
+
+    {% if req.preferred_date %}
+    <div class="text-xs" style="color:var(--color-info);margin-top:4px">
+      <i class="bi bi-calendar"></i> Preferred: {{ req.preferred_date|date:"d M Y" }}
+    </div>
+    {% endif %}
+
+    {% if req.assignment %}
+    <div style="margin-top:8px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-secondary)">
+      <div class="avatar avatar-sm" style="width:22px;height:22px;font-size:10px">
+        {{ req.assignment.collector.get_initials }}
+      </div>
+      <span>🚛 {{ req.assignment.collector.get_display_name }}</span>
+      {% if req.assignment.scheduled_date %}
+      <span>· {{ req.assignment.scheduled_date|date:"d M" }}</span>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Progress Track -->
+    <div class="req-timeline mt-3">
+      {% with status=req.status %}
+      <div class="req-step {% if status in 'pending,assigned,in_progress,collected' %}done{% endif %}">
+        <div class="req-step-dot"></div>
+        <div class="req-step-label">Submitted</div>
+      </div>
+      <div class="req-step {% if status in 'assigned,in_progress,collected' %}done{% elif status == 'pending' %}{% endif %}">
+        <div class="req-step-dot"></div>
+        <div class="req-step-label">Assigned</div>
+      </div>
+      <div class="req-step {% if status in 'in_progress,collected' %}done{% elif status == 'assigned' %}active{% endif %}">
+        <div class="req-step-dot"></div>
+        <div class="req-step-label">En Route</div>
+      </div>
+      <div class="req-step {% if status == 'collected' %}done{% elif status == 'in_progress' %}active{% endif %}">
+        <div class="req-step-dot"></div>
+        <div class="req-step-label">Collected</div>
+      </div>
+      {% endwith %}
+    </div>
+  </div>
+
+  <div style="text-align:right;flex-shrink:0;min-width:90px">
+    <div class="font-bold" style="font-size:16px;color:var(--color-primary)">
+      {{ req.amount_due|floatformat:0 }}
+    </div>
+    <div class="text-xs text-muted">UGX</div>
+    {% if not req.is_paid and req.status != 'cancelled' %}
+    <a href="{% url 'initiate_payment' %}" class="btn btn-sm btn-warning" style="margin-top:8px" onclick="event.stopPropagation()">
+      Pay Now
+    </a>
+    {% elif req.is_paid %}
+    <div style="font-size:12px;color:var(--color-success);margin-top:4px;font-weight:600">✓ Paid</div>
+    {% endif %}
+    {% if req.status == 'collected' and not req.resident_rating %}
+    <a href="{% url 'request_detail' req.pk %}#rate" class="btn btn-sm btn-secondary" style="margin-top:6px;font-size:11px" onclick="event.stopPropagation()">
+      ⭐ Rate
+    </a>
+    {% endif %}
+  </div>
+</a>
+{% empty %}
+<div class="empty-state" style="padding:80px 24px">
+  <div class="empty-state-icon">📭</div>
+  <h3>No requests yet</h3>
+  <p>{% if status_filter %}No requests with status "{{ status_filter }}" found.{% else %}You haven't submitted any pickup requests. Start by clicking "New Request" above.{% endif %}</p>
+  <a href="{% url 'make_request' %}" class="btn btn-primary">
+    <i class="bi bi-plus-lg"></i> Submit First Request
+  </a>
+</div>
+{% endfor %}
+
+{% if requests.has_other_pages %}
+<div class="pagination">
+  {% if requests.has_previous %}
+  <a href="?page={{ requests.previous_page_number }}&status={{ status_filter }}" class="page-btn"><i class="bi bi-chevron-left"></i></a>
+  {% endif %}
+  <span class="page-btn active">{{ requests.number }}</span>
+  <span style="font-size:13px;color:var(--text-muted)">of {{ requests.paginator.num_pages }}</span>
+  {% if requests.has_next %}
+  <a href="?page={{ requests.next_page_number }}&status={{ status_filter }}" class="page-btn"><i class="bi bi-chevron-right"></i></a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

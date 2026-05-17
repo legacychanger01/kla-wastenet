@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Recycling Management{% endblock %}
+{% block breadcrumb_current %}Recycling{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Recycling Management</h1><p>All recycling pickup requests across Kampala</p></div>
+<div class="card">
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead>
+        <tr><th>User</th><th>Material</th><th>Est. Weight</th><th>Division</th><th>Status</th><th>Collector</th><th>Date</th></tr>
+      </thead>
+      <tbody>
+        {% for req in requests %}
+        <tr>
+          <td>
+            <div class="font-semibold text-sm">{{ req.user.get_display_name }}</div>
+            <div class="text-xs text-muted">{{ req.user.phone }}</div>
+          </td>
+          <td class="text-sm">{{ req.get_material_type_display }}</td>
+          <td class="text-sm">{{ req.estimated_weight_kg }} kg</td>
+          <td class="text-sm">{{ req.division|title }}</td>
+          <td><span class="badge badge-{{ req.status }}"><span class="badge-dot"></span>{{ req.get_status_display }}</span></td>
+          <td class="text-sm">{{ req.recycler.get_display_name|default:"—" }}</td>
+          <td class="text-sm text-muted">{{ req.created_at|date:"d M Y" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7">
+            <div class="empty-state" style="padding:40px">
+              <div class="empty-state-icon">♻️</div>
+              <h3>No recycling requests yet</h3>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

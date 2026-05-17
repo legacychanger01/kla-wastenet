@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Payments{% endblock %}
+{% block breadcrumb_current %}Payments{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-header-row">
+    <div><h1>My Payments</h1><p>Transaction history and billing</p></div>
+    <a href="{% url 'initiate_payment' %}" class="btn btn-primary"><i class="bi bi-credit-card"></i> Make Payment</a>
+  </div>
+</div>
+<div class="grid grid-3 mb-6">
+  <div class="stat-card green"><div class="stat-icon"><i class="bi bi-cash-stack"></i></div><div class="stat-value" style="font-size:20px">UGX {{ total_paid|floatformat:0 }}</div><div class="stat-label">Total Paid</div></div>
+  <div class="stat-card blue"><div class="stat-icon"><i class="bi bi-receipt"></i></div><div class="stat-value">{{ payments.paginator.count }}</div><div class="stat-label">Transactions</div></div>
+  <div class="stat-card {% if active_sub %}green{% else %}amber{% endif %}">
+    <div class="stat-icon"><i class="bi bi-stars"></i></div>
+    <div class="stat-value" style="font-size:16px">{% if active_sub %}{{ active_sub.get_plan_display }}{% else %}Free{% endif %}</div>
+    <div class="stat-label">Current Plan</div>
+  </div>
+</div>
+{% if unpaid_requests %}
+<div class="card mb-4" style="border-color:var(--color-warning);background:#fffbeb">
+  <div style="display:flex;align-items:center;justify-content:space-between">
+    <div><div class="font-bold" style="color:var(--color-warning)">⚠ Outstanding Payments</div><div class="text-sm text-secondary mt-1">You have {{ unpaid_requests.count }} unpaid pickup request{{ unpaid_requests.count|pluralize }}</div></div>
+    <a href="{% url 'initiate_payment' %}" class="btn btn-warning btn-sm">Pay Now</a>
+  </div>
+</div>
+{% endif %}
+<div class="card">
+  <div class="card-title mb-4">Transaction History</div>
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead><tr><th>Reference</th><th>Gateway</th><th>Type</th><th>Amount</th><th>Status</th><th>Date</th><th>Receipt</th></tr></thead>
+      <tbody>
+        {% for p in payments %}
+        <tr>
+          <td style="font-family:monospace;font-size:12px">{{ p.reference }}</td>
+          <td class="text-sm">{{ p.get_gateway_display }}</td>
+          <td class="text-sm">{{ p.get_payment_type_display }}</td>
+          <td class="font-bold">UGX {{ p.amount|floatformat:0 }}</td>
+          <td><span class="badge badge-{{ p.status }}"><span class="badge-dot"></span>{{ p.get_status_display }}</span></td>
+          <td class="text-sm text-muted">{{ p.created_at|date:"d M Y H:i" }}</td>
+          <td>{% if p.status == 'successful' %}<a href="{% url 'payment_receipt' p.reference %}" class="btn btn-ghost btn-sm btn-icon"><i class="bi bi-receipt"></i></a>{% else %}—{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7"><div class="empty-state" style="padding:40px"><div class="empty-state-icon">💳</div><h3>No payments yet</h3><p>Make your first payment to see history here.</p><a href="{% url 'initiate_payment' %}" class="btn btn-primary">Make Payment</a></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if payments.has_other_pages %}
+  <div class="pagination">
+    {% if payments.has_previous %}<a href="?page={{ payments.previous_page_number }}" class="page-btn"><i class="bi bi-chevron-left"></i></a>{% endif %}
+    <span class="page-btn active">{{ payments.number }}</span>
+    {% if payments.has_next %}<a href="?page={{ payments.next_page_number }}" class="page-btn"><i class="bi bi-chevron-right"></i></a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

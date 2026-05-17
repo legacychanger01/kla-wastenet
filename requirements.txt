@@ -1,0 +1,94 @@
+# ─── Core Django ──────────────────────────────────────────────────────────────
+Django==5.0.6
+django-environ==0.11.2
+django-extensions==3.2.3
+
+# ─── Database ─────────────────────────────────────────────────────────────────
+# mysqlclient==2.2.4  # Uncomment for MySQL
+django-db-connection-pool==1.2.4
+
+# ─── REST Framework & API ─────────────────────────────────────────────────────
+djangorestframework==3.15.2
+djangorestframework-simplejwt==5.3.1
+drf-spectacular==0.27.2
+django-cors-headers==4.3.1
+django-filter==24.2
+
+# ─── Authentication & Security ────────────────────────────────────────────────
+django-allauth==0.63.3
+django-otp==1.5.1
+qrcode==7.4.2
+django-axes==6.4.0
+django-ratelimit==4.1.0
+cryptography==42.0.8
+Pillow==12.2.0
+
+# ─── Caching & Background Tasks ───────────────────────────────────────────────
+redis==5.0.6
+django-redis==5.4.0
+celery==5.4.0
+django-celery-beat==2.6.0
+django-celery-results==2.5.1
+flower==2.0.1
+
+# ─── Payment Gateways ─────────────────────────────────────────────────────────
+# flutterwave==1.0.7  # unused in repository source; project integrates Flutterwave via HTTP requests directly
+requests==2.32.3
+
+# ─── Notifications ────────────────────────────────────────────────────────────
+twilio==9.2.2
+africastalking==1.2.7
+firebase-admin==6.5.0
+django-fcm==0.1.1
+
+# ─── Storage & Media ──────────────────────────────────────────────────────────
+boto3==1.34.120
+django-storages==1.14.3
+django-imagekit==5.0.0
+
+# ─── Reporting & Export ───────────────────────────────────────────────────────
+reportlab==4.2.2
+openpyxl==3.1.3
+xlwt==1.3.0
+xlrd==2.0.1
+pandas==2.3.3
+
+# ─── AI & Analytics ───────────────────────────────────────────────────────────
+scikit-learn==1.7.2
+numpy==2.4.5
+matplotlib==3.10.9
+
+# ─── Maps & Geolocation ───────────────────────────────────────────────────────
+geopy==2.4.1
+haversine==2.8.1
+
+# ─── PWA ──────────────────────────────────────────────────────────────────────
+django-pwa==1.1.0
+
+# ─── WebSockets & Real-time ───────────────────────────────────────────────────
+channels==4.1.0
+channels-redis==4.2.0
+daphne==4.1.2
+
+# ─── Utilities ────────────────────────────────────────────────────────────────
+python-decouple==3.8
+django-crispy-forms==2.1
+crispy-bootstrap5==2024.2
+django-import-export==4.0.0
+django-activity-stream==2.0.0
+django-guardian==2.4.0
+django-health-check==3.18.3
+whitenoise==6.7.0
+
+# ─── Dev & Testing ────────────────────────────────────────────────────────────
+pytest==8.2.2
+pytest-django==4.8.0
+factory-boy==3.3.0
+coverage==7.5.3
+black==24.4.2
+isort==5.13.2
+flake8==7.0.0
+
+# ─── Production Server ────────────────────────────────────────────────────────
+gunicorn==22.0.0
+uvicorn==0.30.1

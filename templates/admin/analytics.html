@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Analytics{% endblock %}
+{% block breadcrumb_current %}Analytics{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Analytics Overview</h1><p>Waste management data insights and trends</p></div>
+<div class="grid grid-4 mb-6">
+  <div class="stat-card green"><div class="stat-icon"><i class="bi bi-people"></i></div><div class="stat-value">{{ overview.total_users }}</div><div class="stat-label">Residents</div></div>
+  <div class="stat-card blue"><div class="stat-icon"><i class="bi bi-check2-circle"></i></div><div class="stat-value">{{ overview.completion_rate }}%</div><div class="stat-label">Completion Rate</div></div>
+  <div class="stat-card amber"><div class="stat-icon"><i class="bi bi-clock"></i></div><div class="stat-value">{{ overview.avg_response_time_hours }}h</div><div class="stat-label">Avg Response</div></div>
+  <div class="stat-card purple"><div class="stat-icon"><i class="bi bi-geo-alt"></i></div><div class="stat-value">{{ overview.top_division|title }}</div><div class="stat-label">Top Division</div></div>
+</div>
+<div class="grid grid-2">
+  <div class="card">
+    <div class="card-title mb-4">Monthly Request Volume</div>
+    <div style="height:240px"><canvas id="monthlyChart"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-title mb-4">Peak Request Hours</div>
+    <div style="height:240px"><canvas id="hourlyChart"></canvas></div>
+  </div>
+</div>
+<div class="card mt-4">
+  <div class="card-header">
+    <div class="card-title">Division Hotspots</div>
+    <a href="{% url 'ai_predictions' %}" class="btn btn-primary btn-sm"><i class="bi bi-robot"></i> AI Predictions</a>
+  </div>
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead><tr><th>Division</th><th>Total Requests</th><th>Pending</th><th>Collected</th></tr></thead>
+      <tbody>
+        {% for h in hotspots %}
+        <tr>
+          <td class="font-semibold">{{ h.division|title }}</td>
+          <td>{{ h.total }}</td>
+          <td><span class="badge badge-pending"><span class="badge-dot"></span>{{ h.pending }}</span></td>
+          <td><span class="badge badge-collected"><span class="badge-dot"></span>{{ h.collected }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+const monthly = {{ monthly|safe }};
+const hours = {{ peak_hours|safe }};
+new Chart(document.getElementById('monthlyChart').getContext('2d'),{
+  type:'line',
+  data:{
+    labels:monthly.map(d=>{const dt=new Date(d.month);return dt.toLocaleDateString('en-UG',{month:'short',year:'2-digit'})}),
+    datasets:[{label:'Requests',data:monthly.map(d=>d.requests||d.count||0),borderColor:'#1e8f47',backgroundColor:'rgba(30,143,71,0.08)',borderWidth:2.5,fill:true,tension:0.4,pointRadius:4}]
+  },
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(0,0,0,0.05)'}}}}
+});
+new Chart(document.getElementById('hourlyChart').getContext('2d'),{
+  type:'bar',
+  data:{
+    labels:hours.map(h=>h.label),
+    datasets:[{label:'Requests',data:hours.map(h=>h.count),backgroundColor:'rgba(37,99,235,0.7)',borderRadius:4,borderWidth:0}]
+  },
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(0,0,0,0.05)'}}}}
+});
+</script>
+{% endblock %}

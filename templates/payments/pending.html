@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}Payment Pending{% endblock %}
+{% block breadcrumb_current %}Payment Status{% endblock %}
+
+{% block extra_styles %}
+.pending-wrap { max-width: 480px; margin: 60px auto; text-align: center; }
+.pulse-ring {
+  width: 100px; height: 100px; border-radius: 50%;
+  background: var(--brand-50); margin: 0 auto 28px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 44px; position: relative;
+}
+.pulse-ring::before, .pulse-ring::after {
+  content: '';
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 2px solid var(--brand-400);
+  animation: ripple 2s linear infinite;
+}
+.pulse-ring::after { animation-delay: 1s; }
+@keyframes ripple { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.8); opacity: 0; } }
+
+.status-card { background: var(--bg-surface-2); border: 1px solid var(--border-color); border-radius: var(--radius-xl); padding: 24px; margin: 24px 0; text-align: left; }
+.status-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 13px; border-bottom: 1px solid var(--border-light); }
+.status-row:last-child { border-bottom: none; }
+.status-badge-large { display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: var(--radius-full); font-size: 13px; font-weight: 700; margin-top: 8px; }
+.progress-pulse { height: 4px; border-radius: var(--radius-full); background: var(--border-color); overflow: hidden; margin-bottom: 24px; }
+.progress-pulse-fill { height: 100%; background: linear-gradient(90deg, var(--brand-600), var(--brand-300), var(--brand-600)); background-size: 200% 100%; border-radius: var(--radius-full); animation: shimmer 1.5s infinite; }
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+{% endblock %}
+
+{% block content %}
+<div class="pending-wrap">
+  <div id="status-pending">
+    <div class="pulse-ring">📱</div>
+    <h2 style="font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:8px">Waiting for Payment</h2>
+    <p style="color:var(--text-muted);font-size:14px;line-height:1.6">
+      {% if payment.gateway == 'mtn_momo' %}
+      A <strong>MTN Mobile Money</strong> prompt has been sent to <strong>{{ payment.phone_number }}</strong>. Please approve it on your phone.
+      {% elif payment.gateway == 'airtel_money' %}
+      An <strong>Airtel Money</strong> prompt has been sent to <strong>{{ payment.phone_number }}</strong>. Please approve it on your phone.
+      {% else %}
+      Your payment is being processed. This may take a moment.
+      {% endif %}
+    </p>
+
+    <div class="progress-pulse" style="margin-top:20px">
+      <div class="progress-pulse-fill" style="width:100%"></div>
+    </div>
+
+    <div class="status-card">
+      <div class="status-row">
+        <span style="color:var(--text-muted)">Reference</span>
+        <span class="font-bold" style="font-family:monospace">{{ payment.reference }}</span>
+      </div>
+      <div class="status-row">
+        <span style="color:var(--text-muted)">Amount</span>
+        <span class="font-bold" style="color:var(--color-primary)">UGX {{ payment.amount|floatformat:0 }}</span>
+      </div>
+      <div class="status-row">
+        <span style="color:var(--text-muted)">Gateway</span>
+        <span class="font-semibold">{{ payment.get_gateway_display }}</span>
+      </div>
+      <div class="status-row">
+        <span style="color:var(--text-muted)">Status</span>
+        <span>
+          <span class="badge badge-processing" id="status-text">
+            <span class="badge-dot"></span>Awaiting approval
+          </span>
+        </span>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;justify-content:center">
+      <button onclick="checkStatus()" class="btn btn-primary" id="check-btn">
+        <i class="bi bi-arrow-clockwise"></i> Check Status
+      </button>
+      <a href="{% url 'payment_dashboard' %}" class="btn btn-secondary">Back to Payments</a>
+    </div>
+
+    <div style="margin-top:20px;font-size:12px;color:var(--text-muted)">
+      Auto-checking in <span id="countdown">30</span>s · <span id="attempts">0</span> checks done
+    </div>
+  </div>
+
+  <div id="status-success" style="display:none">
+    <div style="width:100px;height:100px;border-radius:50%;background:var(--brand-50);margin:0 auto 28px;display:flex;align-items:center;justify-content:center;font-size:52px">✅</div>
+    <h2 style="font-size:22px;font-weight:800;color:var(--color-success);margin-bottom:8px">Payment Successful!</h2>
+    <p style="color:var(--text-muted)">Your payment has been confirmed. Redirecting to receipt…</p>
+  </div>
+
+  <div id="status-failed" style="display:none">
+    <div style="width:100px;height:100px;border-radius:50%;background:#fef2f2;margin:0 auto 28px;display:flex;align-items:center;justify-content:center;font-size:52px">❌</div>
+    <h2 style="font-size:22px;font-weight:800;color:var(--color-danger);margin-bottom:8px">Payment Failed</h2>
+    <p style="color:var(--text-muted);margin-bottom:20px">The payment was not completed. Please try again.</p>
+    <a href="{% url 'initiate_payment' %}" class="btn btn-primary">Try Again</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const reference = '{{ payment.reference }}';
+let attempts = 0;
+let countdown = 30;
+let timer;
+
+function checkStatus() {
+  clearInterval(timer);
+  const btn = document.getElementById('check-btn');
+  btn.innerHTML = '<span class="spinner"></span> Checking…';
+  btn.disabled = true;
+  attempts++;
+  document.getElementById('attempts').textContent = attempts;
+
+  fetch(`/payments/verify/${reference}/`, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': getCookie('csrftoken'),
+      'X-Requested-With': 'XMLHttpRequest',
+    }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.status === 'successful') {
+      document.getElementById('status-pending').style.display = 'none';
+      document.getElementById('status-success').style.display = '';
+      setTimeout(() => { window.location = data.redirect; }, 2000);
+    } else if (data.status === 'failed') {
+      document.getElementById('status-pending').style.display = 'none';
+      document.getElementById('status-failed').style.display = '';
+    } else {
+      btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Check Status';
+      btn.disabled = false;
+      startCountdown();
+    }
+  })
+  .catch(() => {
+    btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Check Status';
+    btn.disabled = false;
+    startCountdown();
+  });
+}
+
+function startCountdown() {
+  countdown = 30;
+  clearInterval(timer);
+  timer = setInterval(() => {
+    countdown--;
+    const el = document.getElementById('countdown');
+    if (el) el.textContent = countdown;
+    if (countdown <= 0) {
+      clearInterval(timer);
+      if (attempts < 10) checkStatus();
+    }
+  }, 1000);
+}
+
+// Auto-start polling
+setTimeout(() => {
+  if (attempts === 0) checkStatus();
+}, 5000);
+startCountdown();
+
+function getCookie(name) {
+  let v = `; ${document.cookie}`;
+  let p = v.split(`; ${name}=`);
+  if (p.length === 2) return p.pop().split(';').shift();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}Payment Management{% endblock %}
+{% block breadcrumb_current %}Payments{% endblock %}
+
+{% block extra_styles %}
+.gateway-card { padding: 20px; border-radius: var(--radius-lg); border: 1px solid var(--border-color); text-align: center; background: var(--bg-surface); }
+.gateway-amount { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: var(--text-primary); }
+.gateway-label { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+.gateway-count { font-size: 12px; font-weight: 600; color: var(--color-primary); margin-top: 4px; }
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-row">
+    <div>
+      <h1>Payment Management</h1>
+      <p>Revenue tracking, gateway analytics, and transaction history</p>
+    </div>
+    <div class="flex gap-2">
+      <a href="{% url 'export_report' 'csv' %}?type=payments" class="btn btn-secondary btn-sm">
+        <i class="bi bi-filetype-csv"></i> Export CSV
+      </a>
+      <a href="{% url 'export_report' 'excel' %}?type=payments" class="btn btn-secondary btn-sm">
+        <i class="bi bi-file-earmark-excel"></i> Excel
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Revenue Stats -->
+<div class="grid grid-4 mb-6">
+  <div class="stat-card green">
+    <div class="stat-icon"><i class="bi bi-cash-stack"></i></div>
+    <div class="stat-value">{{ stats.total_revenue|floatformat:0 }}</div>
+    <div class="stat-label">Total Revenue (UGX)</div>
+  </div>
+  <div class="stat-card blue">
+    <div class="stat-icon"><i class="bi bi-calendar-month"></i></div>
+    <div class="stat-value">{{ stats.this_month|floatformat:0 }}</div>
+    <div class="stat-label">This Month (UGX)</div>
+  </div>
+  <div class="stat-card purple">
+    <div class="stat-icon"><i class="bi bi-check2-all"></i></div>
+    <div class="stat-value">{{ stats.total_transactions }}</div>
+    <div class="stat-label">Successful Transactions</div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-icon"><i class="bi bi-hourglass-split"></i></div>
+    <div class="stat-value">{{ stats.pending }}</div>
+    <div class="stat-label">Pending Payments</div>
+  </div>
+</div>
+
+<!-- Gateway Breakdown -->
+<div class="card mb-6">
+  <div class="card-title mb-4">Revenue by Payment Gateway</div>
+  <div class="grid grid-4">
+    {% for gw in by_gateway %}
+    <div class="gateway-card">
+      <div style="font-size:28px;margin-bottom:8px">
+        {% if gw.gateway == 'mtn_momo' %}📱{% elif gw.gateway == 'airtel_money' %}📲{% elif gw.gateway == 'flutterwave' %}💳{% else %}💵{% endif %}
+      </div>
+      <div class="gateway-amount">{{ gw.total|floatformat:0 }}</div>
+      <div class="gateway-label">UGX · {{ gw.gateway|title|cut:'_'|cut:'Momo'|default:gw.gateway }}</div>
+      <div class="gateway-count">{{ gw.count }} transaction{{ gw.count|pluralize }}</div>
+    </div>
+    {% empty %}
+    <div class="text-muted text-sm">No payment data yet</div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Filter + Table -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">Transaction History</div>
+    <form method="get" class="flex gap-2">
+      <select name="gateway" class="form-select" style="max-width:160px" onchange="this.form.submit()">
+        <option value="">All Gateways</option>
+        {% for val, label in GATEWAYS %}
+        <option value="{{ val }}" {% if val == gateway_filter %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <select name="status" class="form-select" style="max-width:140px" onchange="this.form.submit()">
+        <option value="">All Statuses</option>
+        {% for val, label in STATUS_CHOICES %}
+        <option value="{{ val }}" {% if val == status_filter %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      {% if gateway_filter or status_filter %}
+      <a href="{% url 'admin_payments' %}" class="btn btn-ghost btn-sm"><i class="bi bi-x"></i></a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Reference</th>
+          <th>Resident</th>
+          <th>Gateway</th>
+          <th>Amount (UGX)</th>
+          <th>Status</th>
+          <th>Type</th>
+          <th>Date</th>
+          <th class="col-actions">Receipt</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for payment in payments %}
+        <tr>
+          <td><span style="font-family:monospace;font-size:12px;font-weight:700">{{ payment.reference }}</span></td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="avatar avatar-sm">{{ payment.user.get_initials }}</div>
+              <div>
+                <div class="text-sm font-semibold">{{ payment.user.get_display_name }}</div>
+                <div class="text-xs text-muted">{{ payment.user.phone }}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="text-sm">
+              {% if payment.gateway == 'mtn_momo' %}📱{% elif payment.gateway == 'airtel_money' %}📲{% elif payment.gateway == 'flutterwave' %}💳{% else %}💵{% endif %}
+              {{ payment.get_gateway_display }}
+            </span>
+          </td>
+          <td class="font-bold" style="color:var(--color-primary)">{{ payment.amount|floatformat:0 }}</td>
+          <td>
+            <span class="badge badge-{{ payment.status }}">
+              <span class="badge-dot"></span>{{ payment.status|title }}
+            </span>
+          </td>
+          <td class="text-sm text-muted" style="text-transform:capitalize">{{ payment.payment_type|cut:'_' }}</td>
+          <td class="text-sm text-muted">{{ payment.created_at|date:"d M Y H:i" }}</td>
+          <td class="col-actions">
+            {% if payment.status == 'successful' %}
+            <a href="{% url 'payment_receipt' payment.reference %}" class="btn btn-secondary btn-sm">
+              <i class="bi bi-receipt"></i>
+            </a>
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted)">No payments found</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if payments.has_other_pages %}
+  <div class="pagination" style="padding:16px">
+    {% if payments.has_previous %}
+    <a href="?page={{ payments.previous_page_number }}&gateway={{ gateway_filter }}&status={{ status_filter }}" class="page-btn"><i class="bi bi-chevron-left"></i></a>
+    {% endif %}
+    <span class="page-btn active">{{ payments.number }}</span>
+    <span style="font-size:13px;color:var(--text-muted)">of {{ payments.paginator.num_pages }}</span>
+    {% if payments.has_next %}
+    <a href="?page={{ payments.next_page_number }}&gateway={{ gateway_filter }}&status={{ status_filter }}" class="page-btn"><i class="bi bi-chevron-right"></i></a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

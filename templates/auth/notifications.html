@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Notifications{% endblock %}
+{% block breadcrumb_current %}Notifications{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-header-row">
+    <h1>Notifications</h1>
+    <button onclick="markAllRead()" class="btn btn-secondary btn-sm"><i class="bi bi-check-all"></i> Mark all read</button>
+  </div>
+</div>
+<div class="card">
+  {% for notif in notifications %}
+  <div style="display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--border-light);{% if not notif.is_read %}background:var(--brand-50);margin:0 -24px;padding:16px 24px;{% endif %}">
+    <div style="width:10px;height:10px;border-radius:50%;margin-top:5px;flex-shrink:0;background:{% if not notif.is_read %}var(--color-primary){% else %}var(--border-color){% endif %}"></div>
+    <div style="flex:1">
+      <div class="font-semibold">{{ notif.title }}</div>
+      <div class="text-sm text-secondary mt-1">{{ notif.message }}</div>
+      <div class="text-xs text-muted mt-2">{{ notif.created_at|timesince }} ago</div>
+    </div>
+    {% if not notif.is_read %}
+    <button onclick="markRead('{{ notif.pk }}')" class="btn btn-ghost btn-sm btn-icon"><i class="bi bi-check"></i></button>
+    {% endif %}
+  </div>
+  {% empty %}
+  <div class="empty-state"><div class="empty-state-icon">🔔</div><h3>No notifications</h3><p>You're all caught up!</p></div>
+  {% endfor %}
+  {% if notifications.has_other_pages %}
+  <div class="pagination">
+    {% if notifications.has_previous %}<a href="?page={{ notifications.previous_page_number }}" class="page-btn"><i class="bi bi-chevron-left"></i></a>{% endif %}
+    <span class="page-btn active">{{ notifications.number }}</span>
+    {% if notifications.has_next %}<a href="?page={{ notifications.next_page_number }}" class="page-btn"><i class="bi bi-chevron-right"></i></a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function markRead(id){fetch(`/notifications/${id}/read/`,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')}}).then(()=>location.reload())}
+function markAllRead(){fetch('/notifications/mark-all-read/',{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')}}).then(()=>location.reload())}
+function getCookie(n){let v=`; ${document.cookie}`,p=v.split(`; ${n}=`);if(p.length===2)return p.pop().split(';').shift()}
+</script>
+{% endblock %}

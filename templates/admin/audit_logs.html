@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Audit Logs{% endblock %}
+{% block breadcrumb_current %}Audit Logs{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Audit Logs</h1><p>Complete record of all system actions for compliance and security</p></div>
+<div class="card">
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Description</th><th>IP Address</th></tr></thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td class="text-xs text-muted" style="white-space:nowrap">{{ log.created_at|date:"d M Y H:i" }}</td>
+          <td>
+            {% if log.user %}
+            <div class="text-sm font-semibold">{{ log.user.get_display_name }}</div>
+            <div class="text-xs text-muted">{{ log.user.get_role_display }}</div>
+            {% else %}<span class="text-muted text-xs">System</span>{% endif %}
+          </td>
+          <td><span class="badge" style="background:var(--bg-surface-2);color:var(--text-secondary);font-size:11px">{{ log.get_action_display }}</span></td>
+          <td class="text-sm" style="max-width:320px">{{ log.description|truncatechars:80 }}</td>
+          <td class="text-xs text-muted" style="font-family:monospace">{{ log.ip_address|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5"><div class="empty-state" style="padding:40px"><div class="empty-state-icon">📋</div><h3>No audit logs yet</h3></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if logs.has_other_pages %}
+  <div class="pagination">
+    {% if logs.has_previous %}<a href="?page={{ logs.previous_page_number }}" class="page-btn"><i class="bi bi-chevron-left"></i></a>{% endif %}
+    <span class="page-btn active">{{ logs.number }} / {{ logs.paginator.num_pages }}</span>
+    {% if logs.has_next %}<a href="?page={{ logs.next_page_number }}" class="page-btn"><i class="bi bi-chevron-right"></i></a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

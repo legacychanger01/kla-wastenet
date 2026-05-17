@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}My Rewards{% endblock %}
+{% block breadcrumb_current %}Rewards{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>♻️ My Recycling Rewards</h1>
+  <p>Your environmental impact and earned points</p>
+</div>
+<div class="grid grid-3 mb-6">
+  <div style="background:linear-gradient(135deg,#78350f,#d97706);color:white;border-radius:var(--radius-xl);padding:24px">
+    <div style="font-size:11px;opacity:.75;text-transform:uppercase;letter-spacing:1px">Reward Points</div>
+    <div style="font-size:40px;font-weight:900;letter-spacing:-1.5px;margin-top:8px">{{ total_points }}</div>
+    <div style="font-size:12px;opacity:.8;margin-top:4px">points earned from recycling</div>
+    <a href="{% url 'subscription_plans' %}" class="btn btn-sm" style="background:rgba(255,255,255,.2);color:white;border:1px solid rgba(255,255,255,.3);margin-top:14px">Redeem Points</a>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon">⚖️</div>
+    <div class="stat-value">{{ total_recycled_kg|floatformat:1 }}</div>
+    <div class="stat-label">kg Recycled Total</div>
+  </div>
+  <div class="stat-card blue">
+    <div class="stat-icon">🌍</div>
+    <div class="stat-value">{{ carbon_saved_kg|default:0|floatformat:1 }}</div>
+    <div class="stat-label">kg CO₂ Saved</div>
+  </div>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <div class="card-title mb-4">Points History</div>
+    {% for tx in transactions %}
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-light)">
+      <div class="avatar avatar-sm" style="background:{% if tx.points > 0 %}var(--brand-600){% else %}var(--color-danger){% endif %}">
+        <i class="bi bi-{% if tx.points > 0 %}plus{% else %}dash{% endif %}" style="font-size:14px"></i>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div class="font-semibold text-sm">{{ tx.description }}</div>
+        <div class="text-xs text-muted">{{ tx.created_at|date:"d M Y" }} · {{ tx.get_transaction_type_display }}</div>
+      </div>
+      <div class="font-bold {% if tx.points > 0 %}text-primary-color{% endif %}" style="{% if tx.points < 0 %}color:var(--color-danger){% endif %};flex-shrink:0">
+        {% if tx.points > 0 %}+{% endif %}{{ tx.points }} pts
+      </div>
+    </div>
+    {% empty %}
+    <div class="empty-state" style="padding:32px">
+      <div class="empty-state-icon">🎁</div>
+      <h3>No reward points yet</h3>
+      <p>Start recycling to earn points and track your environmental impact.</p>
+      <a href="{% url 'recycling_request' %}" class="btn btn-primary btn-sm">Start Recycling</a>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <div class="card-title mb-4">Recycling History</div>
+    {% for req in recycling_history %}
+    <div style="padding:10px 0;border-bottom:1px solid var(--border-light)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="font-semibold text-sm">{{ req.get_material_type_display }}</div>
+          <div class="text-xs text-muted">{{ req.estimated_weight_kg }} kg · {{ req.created_at|date:"d M Y" }}</div>
+          {% if req.reward_points %}<div class="text-xs text-primary-color font-semibold">+{{ req.reward_points }} pts</div>{% endif %}
+        </div>
+        <span class="badge badge-{{ req.status }}"><span class="badge-dot"></span>{{ req.get_status_display }}</span>
+      </div>
+    </div>
+    {% empty %}
+    <div class="text-sm text-muted" style="padding:12px 0">No recycling requests yet</div>
+    {% endfor %}
+    <a href="{% url 'recycling_request' %}" class="btn btn-primary w-full mt-4">
+      <i class="bi bi-recycle"></i> New Recycling Request
+    </a>
+  </div>
+</div>
+{% endblock %}

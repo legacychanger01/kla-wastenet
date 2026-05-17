@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Admin — Support Tickets{% endblock %}
+{% block breadcrumb_current %}Support Tickets{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-header-row">
+    <h1>Support Tickets</h1>
+    <div class="flex gap-2">
+      {% for val,label in STATUS_CHOICES %}
+      <a href="?status={{ val }}" class="btn btn-sm {% if status_filter == val %}btn-primary{% else %}btn-secondary{% endif %}">{{ label }}</a>
+      {% endfor %}
+      <a href="{% url 'admin_tickets' %}" class="btn btn-sm btn-secondary">All</a>
+    </div>
+  </div>
+</div>
+<div class="card">
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead><tr><th>Ticket #</th><th>Resident</th><th>Subject</th><th>Category</th><th>Priority</th><th>Status</th><th>Assigned</th><th>Date</th><th>Action</th></tr></thead>
+      <tbody>
+        {% for ticket in tickets %}
+        <tr>
+          <td style="font-family:monospace;font-weight:700"><a href="{% url 'ticket_detail' ticket.pk %}" style="color:var(--color-primary)">{{ ticket.ticket_number }}</a></td>
+          <td><div class="font-semibold text-sm">{{ ticket.user.get_display_name }}</div></td>
+          <td class="text-sm" style="max-width:200px">{{ ticket.subject|truncatechars:45 }}</td>
+          <td class="text-sm">{{ ticket.get_category_display }}</td>
+          <td><span class="text-sm font-semibold {% if ticket.priority == 'urgent' %}text-danger{% elif ticket.priority == 'high' %}text-warning{% endif %}" style="{% if ticket.priority == 'urgent' %}color:var(--color-danger){% elif ticket.priority == 'high' %}color:var(--color-warning){% endif %}">{{ ticket.get_priority_display }}</span></td>
+          <td><span class="badge badge-{{ ticket.status }}"><span class="badge-dot"></span>{{ ticket.get_status_display }}</span></td>
+          <td class="text-sm">{{ ticket.assigned_to.get_display_name|default:"—" }}</td>
+          <td class="text-sm text-muted">{{ ticket.created_at|date:"d M Y" }}</td>
+          <td>
+            <div class="flex gap-1">
+              <a href="{% url 'ticket_detail' ticket.pk %}" class="btn btn-secondary btn-sm btn-icon"><i class="bi bi-eye"></i></a>
+              {% if not ticket.assigned_to %}<a href="{% url 'assign_ticket' ticket.pk %}" class="btn btn-primary btn-sm">Assign</a>{% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9"><div class="empty-state" style="padding:40px"><div class="empty-state-icon">🎫</div><h3>No tickets found</h3></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

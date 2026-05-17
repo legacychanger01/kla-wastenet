@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Account Locked{% endblock %}
+{% block public_content %}
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg-base);padding:24px">
+  <div style="background:var(--bg-surface);border:1px solid var(--border-color);border-radius:var(--radius-xl);padding:48px;max-width:440px;width:100%;text-align:center;box-shadow:var(--shadow-lg)">
+    <div style="font-size:64px;margin-bottom:16px">🔒</div>
+    <h2 style="font-size:24px;font-weight:800;color:var(--color-danger);margin-bottom:8px">Account Temporarily Locked</h2>
+    <p style="color:var(--text-muted);font-size:14px;line-height:1.6;margin-bottom:24px">Too many failed login attempts. Your account has been temporarily locked for security. Please wait 1 hour before trying again.</p>
+    <div style="padding:16px;background:var(--bg-surface-2);border-radius:var(--radius-md);font-size:13px;color:var(--text-secondary);margin-bottom:24px">If you believe this is a mistake, contact <a href="mailto:support@klawastenet.go.ug" style="color:var(--color-primary);font-weight:600">support@klawastenet.go.ug</a></div>
+    <a href="{% url 'login' %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Back to Login</a>
+  </div>
+</div>
+{% endblock %}

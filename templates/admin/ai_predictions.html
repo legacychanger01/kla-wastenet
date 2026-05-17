@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}AI Predictions{% endblock %}
+{% block breadcrumb_current %}AI Predictions{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-header-row">
+    <div><h1>🤖 AI Demand Predictions</h1><p>Machine learning forecasts for the next 14 days</p></div>
+    <form method="get" style="display:flex;gap:8px">
+      <select name="division" class="form-select" style="width:auto">
+        <option value="central" {% if division=='central' %}selected{% endif %}>Central</option>
+        <option value="kawempe" {% if division=='kawempe' %}selected{% endif %}>Kawempe</option>
+        <option value="makindye" {% if division=='makindye' %}selected{% endif %}>Makindye</option>
+        <option value="nakawa" {% if division=='nakawa' %}selected{% endif %}>Nakawa</option>
+        <option value="rubaga" {% if division=='rubaga' %}selected{% endif %}>Rubaga</option>
+      </select>
+      <button type="submit" class="btn btn-primary">Predict</button>
+    </form>
+  </div>
+</div>
+<div class="card mb-4">
+  <div class="card-title mb-4">14-Day Forecast — {{ division|title }} Division</div>
+  <div style="height:280px"><canvas id="predChart"></canvas></div>
+</div>
+<div class="card">
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead><tr><th>Date</th><th>Day</th><th>Predicted Requests</th><th>Confidence</th></tr></thead>
+      <tbody>
+        {% for p in predictions %}
+        <tr>
+          <td class="font-semibold">{{ p.date }}</td>
+          <td>{{ p.day_name }}</td>
+          <td><strong>{{ p.predicted_requests }}</strong></td>
+          <td><span class="badge {% if p.confidence == 'high' %}badge-active{% else %}badge-pending{% endif %}"><span class="badge-dot"></span>{{ p.confidence|title }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+const preds = {{ predictions_json|safe }};
+new Chart(document.getElementById('predChart').getContext('2d'),{
+  type:'bar',
+  data:{
+    labels:preds.map(p=>p.day_name.slice(0,3)+' '+p.date.slice(8,10)),
+    datasets:[{
+      label:'Predicted Requests',
+      data:preds.map(p=>p.predicted_requests),
+      backgroundColor:'rgba(30,143,71,0.75)',
+      borderRadius:6,borderWidth:0
+    }]
+  },
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(0,0,0,0.05)'}}}}
+});
+</script>
+{% endblock %}

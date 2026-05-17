@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Update Pickup Status{% endblock %}
+{% block breadcrumb_current %}Update Status{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Update Pickup Status</h1></div>
+<div style="max-width:560px">
+  <div class="card mb-4">
+    <div class="card-title mb-3">Assignment Details</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;justify-content:space-between"><span class="text-muted text-sm">Request #</span><span class="font-bold">{{ pickup.request_number }}</span></div>
+      <div style="display:flex;justify-content:space-between"><span class="text-muted text-sm">Resident</span><span class="font-semibold text-sm">{{ pickup.user.get_display_name }}</span></div>
+      <div style="display:flex;justify-content:space-between"><span class="text-muted text-sm">Phone</span><span class="font-semibold text-sm">{{ pickup.user.phone }}</span></div>
+      <div style="display:flex;justify-content:space-between"><span class="text-muted text-sm">Category</span><span class="font-semibold text-sm">{{ pickup.category.icon }} {{ pickup.category.name }}</span></div>
+      <div style="display:flex;justify-content:space-between"><span class="text-muted text-sm">Address</span><span class="font-semibold text-sm" style="max-width:240px;text-align:right">{{ pickup.address }}</span></div>
+      <div style="display:flex;justify-content:space-between"><span class="text-muted text-sm">Current Status</span><span class="badge badge-{{ pickup.status }}"><span class="badge-dot"></span>{{ pickup.get_status_display }}</span></div>
+    </div>
+    {% if pickup.latitude and pickup.longitude %}
+    <a href="https://www.google.com/maps/dir/?api=1&destination={{ pickup.latitude }},{{ pickup.longitude }}" target="_blank" class="btn btn-info w-full mt-4"><i class="bi bi-map-fill"></i> Open in Google Maps</a>
+    {% endif %}
+  </div>
+  <div class="card">
+    <div class="card-title mb-4">Update Status</div>
+    <form method="post" action="{% url 'update_pickup_status' assignment.pk %}" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+        {% if pickup.status == 'assigned' %}
+        <label style="padding:16px;border:2px solid var(--border-color);border-radius:var(--radius-lg);cursor:pointer;text-align:center;transition:all .2s" class="status-option" data-val="in_progress">
+          <input type="radio" name="status" value="in_progress" style="display:none">
+          <div style="font-size:24px;margin-bottom:8px">🚛</div>
+          <div class="font-bold text-sm">Start Pickup</div>
+          <div class="text-xs text-muted">Mark as in progress</div>
+        </label>
+        {% endif %}
+        {% if pickup.status in 'assigned,in_progress' %}
+        <label style="padding:16px;border:2px solid var(--border-color);border-radius:var(--radius-lg);cursor:pointer;text-align:center;transition:all .2s" class="status-option" data-val="collected">
+          <input type="radio" name="status" value="collected" style="display:none">
+          <div style="font-size:24px;margin-bottom:8px">✅</div>
+          <div class="font-bold text-sm">Mark Collected</div>
+          <div class="text-xs text-muted">Waste has been collected</div>
+        </label>
+        {% endif %}
+      </div>
+      <div class="form-group" id="weight-field" style="display:none">
+        <label class="form-label">Actual Weight (kg)</label>
+        <input type="number" name="weight_kg" class="form-control" step="0.5" min="0" placeholder="Measured weight">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes (optional)</label>
+        <textarea name="notes" class="form-control" rows="2" placeholder="Any notes about this pickup…"></textarea>
+      </div>
+      <div class="form-group" id="photo-field" style="display:none">
+        <label class="form-label">Evidence Photo</label>
+        <input type="file" name="collection_image" class="form-control" accept="image/*">
+        <div class="form-hint">Take a photo as proof of collection</div>
+      </div>
+      <div class="flex gap-3">
+        <button type="submit" class="btn btn-primary" id="submit-btn" disabled><i class="bi bi-check-lg"></i> Confirm Update</button>
+        <a href="{% url 'collector_dashboard' %}" class="btn btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.querySelectorAll('.status-option').forEach(opt=>{
+  opt.addEventListener('click',function(){
+    document.querySelectorAll('.status-option').forEach(o=>{o.style.borderColor='var(--border-color)';o.style.background=''});
+    this.style.borderColor='var(--color-primary)';
+    this.style.background='var(--brand-50)';
+    this.querySelector('input').checked=true;
+    const val=this.dataset.val;
+    document.getElementById('weight-field').style.display=val==='collected'?'':'none';
+    document.getElementById('photo-field').style.display=val==='collected'?'':'none';
+    document.getElementById('submit-btn').disabled=false;
+  });
+});
+</script>
+{% endblock %}

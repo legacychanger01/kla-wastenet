@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Ticket {{ ticket.ticket_number }}{% endblock %}
+{% block breadcrumb_current %}Ticket {{ ticket.ticket_number }}{% endblock %}
+{% block extra_styles %}
+.msg-bubble { padding: 12px 16px; border-radius: 12px; max-width: 80%; font-size: 14px; line-height: 1.5; }
+.msg-resident { background: var(--bg-surface-2); border: 1px solid var(--border-color); align-self: flex-start; border-bottom-left-radius: 4px; }
+.msg-agent { background: var(--color-primary); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+.msg-internal { background: #fffbeb; border: 1px dashed var(--color-warning); align-self: flex-end; border-bottom-right-radius: 4px; }
+.messages-list { display: flex; flex-direction: column; gap: 16px; }
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-header-row">
+    <div>
+      <h1>{{ ticket.ticket_number }}</h1>
+      <p>{{ ticket.subject }}</p>
+    </div>
+    <div class="flex gap-2">
+      <span class="badge badge-{{ ticket.status }}" style="font-size:13px;padding:8px 16px"><span class="badge-dot"></span>{{ ticket.get_status_display }}</span>
+      {% if user.is_admin and ticket.status != 'resolved' %}
+      <a href="{% url 'assign_ticket' ticket.pk %}" class="btn btn-secondary btn-sm"><i class="bi bi-person-plus"></i> Assign</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns:2fr 1fr;gap:20px">
+  <!-- Messages Thread -->
+  <div>
+    <div class="card mb-4">
+      <div class="card-title mb-4">Conversation</div>
+      <div class="messages-list">
+        <!-- Original ticket -->
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <div class="avatar avatar-sm">{{ ticket.user.get_initials }}</div>
+            <span class="font-semibold text-sm">{{ ticket.user.get_display_name }}</span>
+            <span class="text-xs text-muted">{{ ticket.created_at|date:"d M Y H:i" }}</span>
+          </div>
+          <div class="msg-bubble msg-resident">{{ ticket.description }}</div>
+          {% if ticket.attachment %}
+          <div style="margin-top:8px"><a href="{{ ticket.attachment.url }}" target="_blank" class="btn btn-secondary btn-sm"><i class="bi bi-paperclip"></i> Attachment</a></div>
+          {% endif %}
+        </div>
+
+        <!-- Thread messages -->
+        {% for msg in ticket_messages %}
+        <div style="display:flex;flex-direction:column;align-items:{% if msg.sender == ticket.user %}flex-start{% else %}flex-end{% endif %}">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;{% if msg.sender != ticket.user %}flex-direction:row-reverse{% endif %}">
+            <div class="avatar avatar-sm">{{ msg.sender.get_initials }}</div>
+            <span class="font-semibold text-sm">{{ msg.sender.get_display_name }}</span>
+            <span class="text-xs text-muted">{{ msg.created_at|date:"d M Y H:i" }}</span>
+            {% if msg.is_internal %}<span style="font-size:10px;background:#fffbeb;color:#d97706;padding:2px 8px;border-radius:99px;font-weight:700">Internal</span>{% endif %}
+          </div>
+          <div class="msg-bubble {% if msg.sender == ticket.user %}msg-resident{% elif msg.is_internal %}msg-internal{% else %}msg-agent{% endif %}">
+            {{ msg.message }}
+          </div>
+          {% if msg.attachment %}<div style="margin-top:6px"><a href="{{ msg.attachment.url }}" target="_blank" class="btn btn-sm" style="background:rgba(255,255,255,.2);color:inherit;border:1px solid currentColor"><i class="bi bi-paperclip"></i> File</a></div>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Reply Form -->
+    {% if ticket.status != 'closed' %}
+    <div class="card">
+      <div class="card-title mb-4">Reply</div>
+      <form method="post" action="{% url 'ticket_detail' ticket.pk %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <textarea name="message" class="form-control" rows="4" placeholder="Type your message here..." required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i> Send Message</button>
+      </form>
+    </div>
+    {% else %}
+    <div class="card" style="text-align:center;padding:24px;color:var(--text-muted)">
+      <i class="bi bi-lock" style="font-size:24px;display:block;margin-bottom:8px"></i>
+      This ticket is closed. <a href="{% url 'new_ticket' %}" style="color:var(--color-primary);font-weight:600">Open a new ticket</a> if you need further assistance.
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Ticket Info -->
+  <div class="flex-col gap-4">
+    <div class="card">
+      <div class="card-title mb-3">Ticket Details</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        {% for label,value in ticket_info %}
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-light)">
+          <span class="text-xs text-muted" style="text-transform:uppercase;letter-spacing:.5px">{{ label }}</span>
+          <span class="text-sm font-semibold">{{ value|default:"—" }}</span>
+        </div>
+        {% endfor %}
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-light)">
+          <span class="text-xs text-muted" style="text-transform:uppercase;letter-spacing:.5px">Ticket #</span>
+          <span class="text-sm font-semibold" style="font-family:monospace">{{ ticket.ticket_number }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-light)">
+          <span class="text-xs text-muted" style="text-transform:uppercase;letter-spacing:.5px">Category</span>
+          <span class="text-sm font-semibold">{{ ticket.get_category_display }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-light)">
+          <span class="text-xs text-muted" style="text-transform:uppercase;letter-spacing:.5px">Priority</span>
+          <span class="text-sm font-semibold">{{ ticket.get_priority_display }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-light)">
+          <span class="text-xs text-muted" style="text-transform:uppercase;letter-spacing:.5px">Opened</span>
+          <span class="text-sm font-semibold">{{ ticket.created_at|date:"d M Y" }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0">
+          <span class="text-xs text-muted" style="text-transform:uppercase;letter-spacing:.5px">Assigned</span>
+          <span class="text-sm font-semibold">{{ ticket.assigned_to.get_display_name|default:"Unassigned" }}</span>
+        </div>
+      </div>
+    </div>
+    <a href="{% url 'support_tickets' %}" class="btn btn-secondary w-full"><i class="bi bi-arrow-left"></i> Back to Tickets</a>
+  </div>
+</div>
+{% endblock %}

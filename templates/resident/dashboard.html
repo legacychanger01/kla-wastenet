@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% block title %}Resident Dashboard{% endblock %}
+{% block breadcrumb_current %}My Dashboard{% endblock %}
+
+{% block extra_styles %}
+.welcome-banner {
+  background: linear-gradient(135deg, var(--brand-800) 0%, var(--brand-600) 60%, var(--brand-400) 100%);
+  border-radius: var(--radius-xl);
+  padding: 32px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.welcome-banner::before {
+  content: '♻️';
+  position: absolute;
+  right: 32px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 80px;
+  opacity: 0.12;
+}
+.welcome-banner::after {
+  content: '';
+  position: absolute;
+  top: -60px; right: 120px;
+  width: 200px; height: 200px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 50%;
+}
+.welcome-banner h2 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
+.welcome-banner p  { opacity: 0.8; font-size: 14px; max-width: 480px; line-height: 1.5; }
+.welcome-actions { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+.btn-white { background: white; color: var(--brand-700); font-weight: 700; border: none; }
+.btn-white:hover { background: var(--brand-50); color: var(--brand-800); transform: translateY(-1px); }
+.btn-outline-white { background: rgba(255,255,255,0.12); color: white; border: 1.5px solid rgba(255,255,255,0.3); }
+.btn-outline-white:hover { background: rgba(255,255,255,0.2); color: white; }
+
+.sub-card {
+  background: linear-gradient(135deg, #1e40af, #3b82f6);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  color: white;
+}
+.sub-card.free { background: linear-gradient(135deg, #374151, #6b7280); }
+.sub-card.monthly { background: linear-gradient(135deg, #065f46, #059669); }
+.sub-card.quarterly { background: linear-gradient(135deg, #1e40af, #3b82f6); }
+.sub-card.annual { background: linear-gradient(135deg, #4c1d95, #7c3aed); }
+
+.request-card {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-base);
+  text-decoration: none;
+  color: inherit;
+}
+.request-card:hover { border-color: var(--color-primary); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.request-icon-wrap { width: 44px; height: 44px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.reward-strip { background: linear-gradient(90deg, #78350f, #d97706); border-radius: var(--radius-lg); padding: 16px 20px; color: white; display: flex; align-items: center; gap: 16px; }
+.reward-strip .points { font-size: 28px; font-weight: 800; letter-spacing: -1px; }
+
+.notification-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-light); align-items: flex-start; }
+.notification-item:last-child { border-bottom: none; }
+.notification-dot { width: 8px; height: 8px; background: var(--color-primary); border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
+.notification-item.read .notification-dot { background: var(--border-color); }
+{% endblock %}
+
+{% block content %}
+<!-- Welcome Banner -->
+<div class="welcome-banner">
+  <h2>Hello, {{ user.first_name|default:user.username }}! 👋</h2>
+  <p>Manage your waste pickups, track collectors in real-time, and make payments — all in one place.</p>
+  <div class="welcome-actions">
+    <a href="{% url 'make_request' %}" class="btn btn-white">
+      <i class="bi bi-plus-lg"></i> New Pickup Request
+    </a>
+    <a href="{% url 'my_requests' %}" class="btn btn-outline-white">
+      <i class="bi bi-card-list"></i> My Requests
+    </a>
+    {% if stats.unpaid > 0 %}
+    <a href="{% url 'initiate_payment' %}" class="btn btn-outline-white" style="background:rgba(220,38,38,0.2);border-color:rgba(255,100,100,0.4)">
+      <i class="bi bi-exclamation-circle"></i> {{ stats.unpaid }} Unpaid Request{{ stats.unpaid|pluralize }}
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Stats Row -->
+<div class="grid grid-4 mb-6">
+  <a href="{% url 'my_requests' %}?status=pending" class="stat-card amber" style="text-decoration:none">
+    <div class="stat-icon"><i class="bi bi-hourglass-split"></i></div>
+    <div class="stat-value">{{ stats.pending }}</div>
+    <div class="stat-label">Pending</div>
+  </a>
+  <a href="{% url 'my_requests' %}?status=assigned" class="stat-card blue" style="text-decoration:none">
+    <div class="stat-icon"><i class="bi bi-person-check"></i></div>
+    <div class="stat-value">{{ stats.assigned }}</div>
+    <div class="stat-label">Assigned</div>
+  </a>
+  <a href="{% url 'my_requests' %}?status=in_progress" class="stat-card purple" style="text-decoration:none">
+    <div class="stat-icon"><i class="bi bi-truck"></i></div>
+    <div class="stat-value">{{ stats.in_progress }}</div>
+    <div class="stat-label">In Progress</div>
+  </a>
+  <a href="{% url 'my_requests' %}?status=collected" class="stat-card green" style="text-decoration:none">
+    <div class="stat-icon"><i class="bi bi-check-circle"></i></div>
+    <div class="stat-value">{{ stats.collected }}</div>
+    <div class="stat-label">Completed</div>
+  </a>
+</div>
+
+<div class="grid grid-3 mb-6" style="grid-template-columns:2fr 1fr">
+  <!-- Recent Requests -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">My Recent Requests</div>
+      <a href="{% url 'my_requests' %}" class="btn btn-secondary btn-sm">View all</a>
+    </div>
+    <div>
+      {% for req in recent_requests %}
+      <a href="{% url 'request_detail' req.pk %}" class="request-card mb-3" style="margin-bottom:10px;display:flex">
+        <div class="request-icon-wrap" style="background:{{ req.category.color|default:'#e8f5e9' }}22">
+          <span>{{ req.category.icon }}</span>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div class="flex items-center gap-2">
+            <span class="font-semibold text-sm">{{ req.request_number }}</span>
+            <span class="badge badge-{{ req.status }}">
+              <span class="badge-dot"></span>{{ req.get_status_display }}
+            </span>
+          </div>
+          <div class="text-xs text-muted mt-1">{{ req.category.name }} · {{ req.address|truncatechars:45 }}</div>
+          <div class="text-xs text-muted">{{ req.created_at|date:"d M Y" }}
+            {% if req.assignment and req.assignment.collector %}
+            · 🚛 {{ req.assignment.collector.get_display_name }}
+            {% endif %}
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div class="text-sm font-bold">UGX {{ req.amount_due|floatformat:0 }}</div>
+          <div class="text-xs {% if req.is_paid %}text-primary-color{% else %}text-muted{% endif %}">
+            {% if req.is_paid %}✓ Paid{% else %}Unpaid{% endif %}
+          </div>
+        </div>
+      </a>
+      {% empty %}
+      <div class="empty-state" style="padding:40px 24px">
+        <div class="empty-state-icon">🗑️</div>
+        <h3>No requests yet</h3>
+        <p>Submit your first waste pickup request to get started.</p>
+        <a href="{% url 'make_request' %}" class="btn btn-primary">
+          <i class="bi bi-plus-lg"></i> New Request
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Right column -->
+  <div class="flex-col gap-4">
+    <!-- Subscription Card -->
+    <div class="sub-card {% if active_sub %}{{ active_sub.plan }}{% else %}free{% endif %}">
+      <div style="font-size:12px;opacity:0.75;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">
+        My Plan
+      </div>
+      <div style="font-size:20px;font-weight:800;margin-bottom:2px">
+        {% if active_sub %}{{ active_sub.get_plan_display }}
+        {% else %}Free (Pay-per-pickup){% endif %}
+      </div>
+      {% if active_sub %}
+      <div style="font-size:12px;opacity:0.8">
+        Expires {{ active_sub.end_date|date:"d M Y" }}
+        {% if active_sub.days_remaining != None %}
+        ({{ active_sub.days_remaining }} days left)
+        {% endif %}
+      </div>
+      {% else %}
+      <div style="font-size:12px;opacity:0.8">Upgrade for unlimited pickups</div>
+      {% endif %}
+      <a href="{% url 'subscription_plans' %}" class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3);margin-top:12px">
+        {% if active_sub %}Manage Plan{% else %}Upgrade Plan{% endif %}
+      </a>
+    </div>
+
+    <!-- Recycling Rewards -->
+    {% if recycling_points > 0 %}
+    <div class="reward-strip">
+      <i class="bi bi-gift" style="font-size:24px;opacity:0.8"></i>
+      <div>
+        <div style="font-size:11px;opacity:0.8;text-transform:uppercase;letter-spacing:1px">Reward Points</div>
+        <div class="points">{{ recycling_points }}</div>
+        <div style="font-size:12px;opacity:0.8">pts earned from recycling</div>
+      </div>
+      <a href="{% url 'my_rewards' %}" class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3);margin-left:auto">
+        Redeem
+      </a>
+    </div>
+    {% endif %}
+
+    <!-- Recent Payments -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Recent Payments</div>
+        <a href="{% url 'payment_dashboard' %}" class="btn btn-ghost btn-sm">All</a>
+      </div>
+      {% for payment in recent_payments %}
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border-light)">
+        <div class="avatar avatar-sm" style="background:linear-gradient(135deg,#065f46,#059669)">
+          <i class="bi bi-check" style="font-size:13px"></i>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div class="text-sm font-semibold">{{ payment.reference|truncatechars:14 }}</div>
+          <div class="text-xs text-muted">{{ payment.get_gateway_display }}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="text-sm font-bold text-primary-color">{{ payment.amount|floatformat:0 }}</div>
+          <div class="text-xs text-muted">UGX</div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="text-sm text-muted" style="padding:8px 0">No payments yet</div>
+      {% endfor %}
+      <a href="{% url 'initiate_payment' %}" class="btn btn-primary w-full" style="margin-top:12px">
+        <i class="bi bi-credit-card"></i> Make Payment
+      </a>
+    </div>
+
+    <!-- Notifications -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Notifications</div>
+        <a href="{% url 'notifications' %}" class="btn btn-ghost btn-sm">All</a>
+      </div>
+      {% for notif in notifications %}
+      <div class="notification-item {% if notif.is_read %}read{% endif %}">
+        <div class="notification-dot"></div>
+        <div>
+          <div class="text-sm font-semibold">{{ notif.title }}</div>
+          <div class="text-xs text-muted mt-1">{{ notif.message|truncatechars:80 }}</div>
+          <div class="text-xs text-muted mt-1">{{ notif.created_at|timesince }} ago</div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="text-sm text-muted">No new notifications</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

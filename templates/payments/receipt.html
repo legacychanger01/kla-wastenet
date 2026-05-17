@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}Payment Receipt — {{ payment.reference }}{% endblock %}
+{% block breadcrumb_current %}Receipt{% endblock %}
+
+{% block extra_styles %}
+.receipt-wrap { max-width: 600px; margin: 0 auto; }
+.receipt-card { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-xl); overflow: hidden; box-shadow: var(--shadow-lg); }
+.receipt-header { background: linear-gradient(135deg, var(--brand-800), var(--brand-500)); padding: 32px; text-align: center; color: white; }
+.receipt-header .check-circle { width: 72px; height: 72px; border-radius: 50%; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; font-size: 36px; margin: 0 auto 16px; border: 2px solid rgba(255,255,255,0.3); }
+.receipt-body { padding: 28px; }
+.receipt-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 11px 0; border-bottom: 1px solid var(--border-light); gap: 16px; }
+.receipt-row:last-child { border-bottom: none; }
+.receipt-row .label { font-size: 13px; color: var(--text-muted); flex-shrink: 0; }
+.receipt-row .value { font-size: 13px; font-weight: 600; color: var(--text-primary); text-align: right; }
+.receipt-row.total .value { font-size: 20px; font-weight: 800; color: var(--color-primary); }
+.receipt-footer { padding: 20px 28px; background: var(--bg-surface-2); border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.receipt-ref { font-family: monospace; font-size: 12px; color: var(--text-muted); }
+.stamp { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; border: 2px solid var(--color-success); border-radius: var(--radius-full); color: var(--color-success); font-size: 12px; font-weight: 700; transform: rotate(-3deg); }
+@media print {
+  .topbar, .sidebar, .mobile-toggle, .page-header, .receipt-actions { display: none !important; }
+  .main-content { margin-left: 0 !important; }
+  .page-content { padding: 0 !important; }
+  .receipt-card { box-shadow: none !important; border: none !important; }
+}
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-row">
+    <h1>Payment Receipt</h1>
+    <div class="flex gap-2 receipt-actions">
+      <button onclick="window.print()" class="btn btn-secondary btn-sm">
+        <i class="bi bi-printer"></i> Print
+      </button>
+      <a href="{% url 'payment_dashboard' %}" class="btn btn-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Back
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="receipt-wrap">
+  <div class="receipt-card">
+    <!-- Header -->
+    <div class="receipt-header">
+      <div class="check-circle">✅</div>
+      <h2 style="font-size:22px;font-weight:800;margin-bottom:4px">Payment Confirmed</h2>
+      <p style="opacity:0.8;font-size:14px">Transaction processed successfully</p>
+      <div style="font-size:32px;font-weight:900;letter-spacing:-1px;margin-top:12px">
+        UGX {{ payment.amount|floatformat:0 }}
+      </div>
+      <div style="opacity:0.7;font-size:13px;margin-top:4px">{{ payment.completed_at|date:"d F Y, g:i A" }}</div>
+    </div>
+
+    <!-- Body -->
+    <div class="receipt-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div>
+          <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px">Receipt No.</div>
+          <div style="font-family:monospace;font-weight:700;font-size:15px">{{ payment.reference }}</div>
+        </div>
+        <div class="stamp">✓ PAID</div>
+      </div>
+
+      <div class="receipt-row">
+        <span class="label">Paid by</span>
+        <span class="value">{{ payment.user.get_display_name }}</span>
+      </div>
+      <div class="receipt-row">
+        <span class="label">Payment method</span>
+        <span class="value">{{ payment.get_gateway_display }}</span>
+      </div>
+      {% if payment.phone_number %}
+      <div class="receipt-row">
+        <span class="label">Phone number</span>
+        <span class="value">{{ payment.phone_number }}</span>
+      </div>
+      {% endif %}
+      <div class="receipt-row">
+        <span class="label">Transaction type</span>
+        <span class="value">{{ payment.get_payment_type_display }}</span>
+      </div>
+      {% if payment.description %}
+      <div class="receipt-row">
+        <span class="label">Description</span>
+        <span class="value" style="max-width:260px;word-break:break-word">{{ payment.description }}</span>
+      </div>
+      {% endif %}
+      {% if payment.gateway_reference %}
+      <div class="receipt-row">
+        <span class="label">Gateway ref.</span>
+        <span class="value" style="font-family:monospace;font-size:12px">{{ payment.gateway_reference|truncatechars:30 }}</span>
+      </div>
+      {% endif %}
+      <div class="receipt-row">
+        <span class="label">Status</span>
+        <span class="value">
+          <span class="badge badge-successful"><span class="badge-dot"></span>Successful</span>
+        </span>
+      </div>
+      {% if invoice %}
+      <div class="receipt-row">
+        <span class="label">Invoice No.</span>
+        <span class="value" style="font-family:monospace">{{ invoice.invoice_number }}</span>
+      </div>
+      {% endif %}
+      <div class="receipt-row total">
+        <span class="label" style="font-size:15px;font-weight:700;color:var(--text-primary)">Amount Paid</span>
+        <span class="value">UGX {{ payment.amount|floatformat:0 }}</span>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="receipt-footer">
+      <div>
+        <div style="font-size:13px;font-weight:700">KLA WasteNet</div>
+        <div class="receipt-ref">Kampala Capital City Authority</div>
+        <div class="receipt-ref">{{ payment.created_at|date:"d M Y H:i" }} EAT</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:12px;color:var(--text-muted)">This is an official digital receipt</div>
+        <div style="font-size:12px;color:var(--text-muted)">Keep for your records</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Next steps -->
+  <div class="card mt-4" style="text-align:center">
+    <div style="font-size:18px;margin-bottom:8px">🎉 Thank you for your payment!</div>
+    <p style="color:var(--text-muted);font-size:14px;margin-bottom:20px">Your waste pickup has been confirmed. A collector will be assigned shortly.</p>
+    <div class="flex gap-3" style="justify-content:center;flex-wrap:wrap">
+      <a href="{% url 'my_requests' %}" class="btn btn-primary">
+        <i class="bi bi-list-task"></i> View My Requests
+      </a>
+      <a href="{% url 'resident_dashboard' %}" class="btn btn-secondary">
+        <i class="bi bi-grid-1x2"></i> Dashboard
+      </a>
+      <a href="{% url 'make_request' %}" class="btn btn-secondary">
+        <i class="bi bi-plus"></i> New Request
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

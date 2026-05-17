@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}KLA WasteNet — Smart Waste Management for Kampala{% endblock %}
+{% block extra_styles %}
+*{box-sizing:border-box}
+.hero{min-height:100vh;background:linear-gradient(135deg,var(--brand-900) 0%,var(--brand-700) 55%,var(--brand-500) 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 24px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 80%,rgba(79,196,110,.15),transparent 60%)}
+.hero-nav{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:24px 48px;z-index:10}
+.hero-logo{display:flex;align-items:center;gap:12px;color:white;font-weight:800;font-size:20px;letter-spacing:-.3px}
+.hero-logo-icon{width:42px;height:42px;background:rgba(255,255,255,.15);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px}
+.hero-nav-links{display:flex;gap:12px}
+.hero-chip{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.2);border-radius:99px;padding:7px 16px;font-size:13px;color:rgba(255,255,255,.9);margin-bottom:28px}
+.hero h1{font-size:clamp(36px,6vw,72px);font-weight:900;color:white;letter-spacing:-2px;line-height:1.08;margin-bottom:20px;max-width:800px}
+.hero h1 span{background:linear-gradient(90deg,var(--brand-300),#86efac);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{font-size:18px;color:rgba(255,255,255,.8);max-width:520px;line-height:1.65;margin-bottom:40px}
+.hero-btns{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.btn-hero-primary{background:white;color:var(--brand-800);font-weight:800;font-size:16px;padding:15px 32px;border-radius:12px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:10px;transition:all .2s;text-decoration:none}
+.btn-hero-primary:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,0,0,.2);color:var(--brand-900)}
+.btn-hero-outline{background:rgba(255,255,255,.1);color:white;font-weight:700;font-size:15px;padding:14px 28px;border-radius:12px;border:1.5px solid rgba(255,255,255,.3);cursor:pointer;display:inline-flex;align-items:center;gap:10px;transition:all .2s;text-decoration:none;backdrop-filter:blur(8px)}
+.btn-hero-outline:hover{background:rgba(255,255,255,.2);color:white}
+.hero-stats{display:flex;gap:48px;margin-top:56px;flex-wrap:wrap;justify-content:center}
+.hero-stat{text-align:center;color:white}
+.hero-stat .n{font-size:36px;font-weight:900;letter-spacing:-1.5px;line-height:1}
+.hero-stat .l{font-size:13px;opacity:.65;margin-top:4px;letter-spacing:.3px}
+.features{padding:80px 24px;max-width:1100px;margin:0 auto}
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:48px}
+.feature-card{background:var(--bg-surface);border:1px solid var(--border-color);border-radius:20px;padding:28px;transition:all .2s}
+.feature-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-3px)}
+.feature-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:18px}
+.feature-card h3{font-size:16px;font-weight:700;margin-bottom:8px;color:var(--text-primary)}
+.feature-card p{font-size:14px;color:var(--text-muted);line-height:1.6}
+.section-label{font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--color-primary);margin-bottom:12px}
+.section-title{font-size:clamp(26px,4vw,38px);font-weight:800;letter-spacing:-.8px;color:var(--text-primary);margin-bottom:16px}
+.section-desc{font-size:16px;color:var(--text-muted);max-width:520px;line-height:1.65}
+.divs-section{padding:60px 24px;background:var(--bg-surface);text-align:center}
+.divisions-grid{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:32px}
+.div-chip{padding:10px 22px;border-radius:99px;background:var(--bg-base);border:1.5px solid var(--border-color);font-size:14px;font-weight:600;color:var(--text-secondary);display:flex;align-items:center;gap:8px}
+.div-chip:hover{border-color:var(--color-primary);color:var(--color-primary)}
+.cta-section{background:linear-gradient(135deg,var(--brand-800),var(--brand-600));padding:80px 24px;text-align:center;color:white}
+.cta-section h2{font-size:clamp(28px,4vw,44px);font-weight:800;letter-spacing:-.8px;margin-bottom:14px}
+.cta-section p{opacity:.8;font-size:16px;margin-bottom:36px;max-width:480px;margin-left:auto;margin-right:auto}
+footer{background:var(--brand-900);color:rgba(255,255,255,.5);text-align:center;padding:28px;font-size:13px}
+footer a{color:var(--brand-300)}
+@media(max-width:768px){.features-grid{grid-template-columns:1fr}.hero-nav{padding:16px 20px}.hero-nav-links{display:none}.hero-stats{gap:28px}.hero-stat .n{font-size:26px}}
+{% endblock %}
+{% block public_content %}
+<!-- Hero -->
+<section class="hero">
+  <nav class="hero-nav">
+    <div class="hero-logo">
+      <div class="hero-logo-icon">♻️</div>
+      KLA WasteNet
+    </div>
+    <div class="hero-nav-links">
+      <a href="{% url 'login' %}" class="btn-hero-outline" style="padding:9px 20px;font-size:14px">Sign In</a>
+      <a href="{% url 'register' %}" class="btn-hero-primary" style="padding:9px 20px;font-size:14px">Get Started</a>
+    </div>
+  </nav>
+
+  <div class="hero-chip">
+    <span style="width:8px;height:8px;background:#4ade80;border-radius:50%;animation:pulse 2s infinite"></span>
+    Live · Serving all 5 Kampala Divisions
+  </div>
+
+  <h1>Smart Waste Management<br>for <span>Kampala</span></h1>
+  <p>Request pickups online, pay via mobile money, and track your collector live — powered by KCCA and AI.</p>
+
+  <div class="hero-btns">
+    <a href="{% url 'register' %}" class="btn-hero-primary">
+      <i class="bi bi-person-plus"></i> Register Free
+    </a>
+    <a href="{% url 'login' %}" class="btn-hero-outline">
+      <i class="bi bi-box-arrow-in-right"></i> Sign In
+    </a>
+    <a href="/api/docs/" class="btn-hero-outline" target="_blank">
+      <i class="bi bi-code-slash"></i> API Docs
+    </a>
+  </div>
+
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="n">50K+</div><div class="l">Registered Residents</div></div>
+    <div class="hero-stat"><div class="n">200+</div><div class="l">Active Collectors</div></div>
+    <div class="hero-stat"><div class="n">5</div><div class="l">City Divisions</div></div>
+    <div class="hero-stat"><div class="n">99%</div><div class="l">Uptime</div></div>
+  </div>
+</section>
+
+<!-- Features -->
+<section style="padding:80px 24px;max-width:1100px;margin:0 auto">
+  <div style="text-align:center;margin-bottom:48px">
+    <div class="section-label">Why KLA WasteNet</div>
+    <div class="section-title">Everything you need for clean waste management</div>
+    <p class="section-desc" style="margin:0 auto">From request to collection — a fully digital, transparent experience.</p>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon" style="background:#f0fdf4;color:var(--brand-600)">📱</div>
+      <h3>Mobile Money Payments</h3>
+      <p>Pay instantly via MTN MoMo, Airtel Money, Flutterwave, or card. Receive digital receipts automatically.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:#eff6ff;color:#2563eb">📍</div>
+      <h3>Live GPS Tracking</h3>
+      <p>See your waste collector's exact location on a live map. Know their ETA before they arrive.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:#f5f3ff;color:#7c3aed">🤖</div>
+      <h3>AI-Powered Scheduling</h3>
+      <p>Machine learning optimizes collector routes, predicts demand, and auto-assigns the nearest collector.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:#fef9c3;color:#ca8a04">♻️</div>
+      <h3>Recycling Rewards</h3>
+      <p>Earn reward points for recycling. Redeem them for discounts on future pickups or KCCA services.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:#fff7ed;color:#ea580c">📊</div>
+      <h3>Smart Bin Monitoring</h3>
+      <p>IoT-connected smart bins alert collectors automatically when they need emptying.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:#fdf2f8;color:#db2777">🔒</div>
+      <h3>Enterprise Security</h3>
+      <p>2FA authentication, audit logs, rate limiting, and encrypted data storage. Your data is always safe.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Divisions -->
+<div class="divs-section">
+  <div class="section-label">Coverage</div>
+  <div class="section-title">All Kampala Divisions</div>
+  <div class="divisions-grid">
+    <div class="div-chip">🏙️ Central Division</div>
+    <div class="div-chip">🌿 Kawempe Division</div>
+    <div class="div-chip">🏘️ Makindye Division</div>
+    <div class="div-chip">🏭 Nakawa Division</div>
+    <div class="div-chip">⛪ Rubaga Division</div>
+  </div>
+</div>
+
+<!-- CTA -->
+<section class="cta-section">
+  <h2>Ready for a cleaner Kampala?</h2>
+  <p>Join thousands of residents already using KLA WasteNet to manage waste smarter.</p>
+  <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+    <a href="{% url 'register' %}" class="btn-hero-primary">
+      <i class="bi bi-person-plus"></i> Create Free Account
+    </a>
+    <a href="{% url 'login' %}" class="btn-hero-outline">
+      Already registered? Sign in
+    </a>
+  </div>
+</section>
+
+<footer>
+  <div>© 2024 <strong style="color:rgba(255,255,255,.7)">KLA WasteNet</strong> — Kampala Capital City Authority Smart Platform</div>
+  <div style="margin-top:8px">
+    <a href="/api/docs/" target="_blank">API Docs</a> ·
+    <a href="/health/">System Status</a>
+  </div>
+</footer>
+{% endblock %}

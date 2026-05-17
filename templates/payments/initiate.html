@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+{% block title %}Make Payment{% endblock %}
+{% block breadcrumb_current %}Make Payment{% endblock %}
+
+{% block extra_styles %}
+.payment-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.gateway-grid { display: flex; flex-direction: column; gap: 10px; }
+.gateway-option {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px 18px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  position: relative;
+}
+.gateway-option:hover { border-color: var(--color-primary); background: var(--brand-50); }
+.gateway-option.selected { border-color: var(--color-primary); background: var(--brand-50); box-shadow: 0 0 0 3px rgba(22,115,57,0.1); }
+.gateway-option input[type=radio] { display: none; }
+.gateway-check { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; transition: all var(--transition-base); }
+.gateway-option.selected .gateway-check { background: var(--color-primary); border-color: var(--color-primary); }
+.gateway-option.selected .gateway-check::after { content: '✓'; font-size: 12px; color: white; font-weight: 700; }
+.gateway-logo { width: 48px; height: 48px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+.gateway-info .name { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.gateway-info .desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.gateway-info .timing { font-size: 11px; color: var(--color-success); font-weight: 600; margin-top: 3px; }
+
+.amount-type-tabs { display: flex; background: var(--bg-surface-2); border-radius: var(--radius-md); padding: 4px; margin-bottom: 20px; border: 1px solid var(--border-color); }
+.amount-tab { flex: 1; padding: 8px; text-align: center; font-size: 13px; font-weight: 600; border-radius: 7px; cursor: pointer; transition: all var(--transition-base); color: var(--text-muted); }
+.amount-tab.active { background: var(--bg-surface); color: var(--text-primary); box-shadow: var(--shadow-sm); }
+
+.plan-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.plan-card { padding: 16px; border: 2px solid var(--border-color); border-radius: var(--radius-lg); cursor: pointer; transition: all var(--transition-base); text-align: center; }
+.plan-card:hover { border-color: var(--color-primary); }
+.plan-card.selected { border-color: var(--color-primary); background: var(--brand-50); }
+.plan-card.recommended { position: relative; }
+.plan-card.recommended::before { content: '★ Best value'; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: var(--color-primary); color: white; font-size: 10px; font-weight: 700; padding: 2px 10px; border-radius: var(--radius-full); white-space: nowrap; }
+.plan-price { font-size: 20px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.5px; }
+.plan-period { font-size: 11px; color: var(--text-muted); }
+.plan-features { font-size: 11px; color: var(--text-secondary); margin-top: 8px; line-height: 1.6; }
+
+.payment-summary-card { background: var(--bg-surface-2); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 20px; }
+.summary-row { display: flex; justify-content: space-between; padding: 7px 0; font-size: 13px; border-bottom: 1px solid var(--border-light); color: var(--text-secondary); }
+.summary-row:last-child { border-bottom: none; }
+.summary-total { font-size: 18px; font-weight: 800; color: var(--color-primary); }
+
+.security-badge { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); padding: 10px 14px; background: var(--bg-surface-2); border-radius: var(--radius-md); }
+.security-badge i { color: var(--color-success); font-size: 16px; }
+
+@media (max-width: 768px) { .payment-layout, .plan-cards { grid-template-columns: 1fr; } }
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Make Payment</h1>
+  <p>Choose your preferred payment method and complete your transaction securely</p>
+</div>
+
+<form method="post" action="{% url 'initiate_payment' %}" id="payment-form">
+{% csrf_token %}
+<input type="hidden" name="amount" id="amount-hidden">
+<input type="hidden" name="payment_type" id="payment-type-hidden" value="pickup">
+
+<div class="payment-layout">
+  <!-- Left: Payment type + Gateway -->
+  <div>
+    <!-- Payment Type Tabs -->
+    <div class="card mb-4">
+      <div class="card-title mb-4">What are you paying for?</div>
+      <div class="amount-type-tabs">
+        <div class="amount-tab active" id="tab-pickup" onclick="switchTab('pickup')">
+          <i class="bi bi-truck"></i> Pickup Fee
+        </div>
+        <div class="amount-tab" id="tab-subscription" onclick="switchTab('subscription')">
+          <i class="bi bi-stars"></i> Subscription
+        </div>
+      </div>
+
+      <!-- Pickup: outstanding requests -->
+      <div id="section-pickup">
+        {% if pending_requests %}
+        <div style="margin-bottom:12px">
+          <label class="form-label">Select Request to Pay For</label>
+          {% for req in pending_requests %}
+          <label style="display:flex;align-items:center;gap:12px;padding:12px;border:1.5px solid var(--border-color);border-radius:var(--radius-md);margin-bottom:8px;cursor:pointer;transition:all 0.2s" class="req-pick-label">
+            <input type="radio" name="pickup_req" value="{{ req.pk }}" data-fee="{{ req.amount_due }}" onchange="setPickupFee({{ req.amount_due }})" style="accent-color:var(--color-primary)">
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:600">{{ req.request_number }}</div>
+              <div style="font-size:12px;color:var(--text-muted)">{{ req.category.name }} · {{ req.division }}</div>
+            </div>
+            <div style="font-weight:700;color:var(--color-primary)">UGX {{ req.amount_due|floatformat:0 }}</div>
+          </label>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:24px;color:var(--text-muted)">
+          <i class="bi bi-check-circle" style="font-size:32px;color:var(--color-success);display:block;margin-bottom:8px"></i>
+          <div class="font-semibold">No outstanding requests</div>
+          <div class="text-sm">All your requests are paid up</div>
+          <a href="{% url 'make_request' %}" class="btn btn-primary btn-sm" style="margin-top:12px">New Pickup Request</a>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Subscription -->
+      <div id="section-subscription" style="display:none">
+        <div class="plan-cards">
+          {% for plan in subscription_plans %}
+          <label class="plan-card {% if plan.recommended %}recommended{% endif %}" id="plan-{{ plan.key }}" onclick="selectPlan('{{ plan.key }}', {{ plan.price }}, this)">
+            <input type="radio" name="sub_plan" value="{{ plan.key }}" style="display:none">
+            <div class="plan-price">UGX {{ plan.price|floatformat:0 }}</div>
+            <div class="plan-period">{{ plan.period }}</div>
+            <div style="font-size:13px;font-weight:700;margin-top:6px">{{ plan.label }}</div>
+            <div class="plan-features">
+              {% for f in plan.features %}{{ f }}<br>{% endfor %}
+            </div>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Gateway -->
+    <div class="card">
+      <div class="card-title mb-4">Choose Payment Method</div>
+      <div class="gateway-grid">
+        {% for gw_key, gw_label, gw_icon, gw_color in GATEWAYS %}
+        <label class="gateway-option {% if forloop.first %}selected{% endif %}" onclick="selectGateway('{{ gw_key }}', this)" id="gw-{{ gw_key }}">
+          <input type="radio" name="gateway" value="{{ gw_key }}" {% if forloop.first %}checked{% endif %}>
+          <div class="gateway-logo" style="background:{{ gw_color }}22">
+            <i class="{{ gw_icon }}" style="color:{{ gw_color }}"></i>
+          </div>
+          <div class="gateway-info">
+            <div class="name">{{ gw_label }}</div>
+            <div class="desc">
+              {% if gw_key == 'mtn_momo' %}Pay directly from your MTN line
+              {% elif gw_key == 'airtel_money' %}Pay directly from your Airtel line
+              {% elif gw_key == 'flutterwave' %}Card, bank transfer, mobile money
+              {% endif %}
+            </div>
+            <div class="timing">✓ Instant confirmation</div>
+          </div>
+          <div class="gateway-check"></div>
+        </label>
+        {% endfor %}
+      </div>
+
+      <!-- Phone for mobile money -->
+      <div id="phone-section" style="margin-top:16px">
+        <label class="form-label">Mobile Money Phone Number</label>
+        <div class="input-group">
+          <span class="input-addon left"><i class="bi bi-phone"></i></span>
+          <input type="tel" name="phone" class="form-control" placeholder="+256700000000"
+                 value="{{ user.phone }}"
+                 style="border-radius:0 var(--radius-md) var(--radius-md) 0;border-left:none">
+        </div>
+        <div class="form-hint">Enter the phone number linked to your mobile money account</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Summary + Submit -->
+  <div>
+    <div class="card" style="position:sticky;top:80px">
+      <div class="card-title mb-4">Payment Summary</div>
+
+      <div class="payment-summary-card mb-4">
+        <div class="summary-row">
+          <span>Payment for</span>
+          <span id="sum-type" class="font-semibold" style="color:var(--text-primary)">—</span>
+        </div>
+        <div class="summary-row">
+          <span>Gateway</span>
+          <span id="sum-gateway" class="font-semibold" style="color:var(--text-primary)">MTN MoMo</span>
+        </div>
+        <div class="summary-row">
+          <span>Phone</span>
+          <span class="font-semibold" style="color:var(--text-primary)">{{ user.phone|default:'—' }}</span>
+        </div>
+        <div class="summary-row">
+          <span>Amount</span>
+          <span id="sum-amount" class="summary-total">UGX 0</span>
+        </div>
+      </div>
+
+      <div class="security-badge mb-4">
+        <i class="bi bi-shield-lock-fill"></i>
+        <span>All payments are encrypted and processed securely via verified gateways.</span>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-lg w-full" id="pay-btn" disabled>
+        <i class="bi bi-lock-fill"></i>
+        Pay Now
+      </button>
+
+      <div style="display:flex;justify-content:center;gap:16px;margin-top:16px;opacity:0.6">
+        <span style="font-size:10px;color:var(--text-muted)">🔒 SSL Encrypted</span>
+        <span style="font-size:10px;color:var(--text-muted)">✓ Bank-grade Security</span>
+        <span style="font-size:10px;color:var(--text-muted)">💳 PCI Compliant</span>
+      </div>
+    </div>
+  </div>
+</div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentAmount = 0;
+let currentGateway = '{{ GATEWAYS.0.0 }}';
+let currentType = 'pickup';
+
+function switchTab(tab) {
+  currentType = tab;
+  document.getElementById('tab-pickup').classList.toggle('active', tab === 'pickup');
+  document.getElementById('tab-subscription').classList.toggle('active', tab === 'subscription');
+  document.getElementById('section-pickup').style.display = tab === 'pickup' ? '' : 'none';
+  document.getElementById('section-subscription').style.display = tab === 'subscription' ? '' : 'none';
+  document.getElementById('payment-type-hidden').value = tab === 'subscription' ? 'subscription' : 'pickup';
+  document.getElementById('phone-section').style.display = '';
+  currentAmount = 0;
+  updateSummary();
+}
+
+function setPickupFee(fee) {
+  currentAmount = parseFloat(fee);
+  document.getElementById('sum-type').textContent = 'Waste Pickup';
+  updateSummary();
+}
+
+function selectPlan(key, price, el) {
+  document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  currentAmount = parseFloat(price);
+  document.getElementById('sum-type').textContent = key.charAt(0).toUpperCase() + key.slice(1) + ' Plan';
+  updateSummary();
+}
+
+function selectGateway(key, el) {
+  document.querySelectorAll('.gateway-option').forEach(g => g.classList.remove('selected'));
+  el.classList.add('selected');
+  currentGateway = key;
+  const labels = {
+    'mtn_momo': 'MTN Mobile Money',
+    'airtel_money': 'Airtel Money',
+    'flutterwave': 'Flutterwave',
+  };
+  document.getElementById('sum-gateway').textContent = labels[key] || key;
+  document.getElementById('phone-section').style.display = key === 'flutterwave' ? 'none' : '';
+  updateSummary();
+}
+
+function updateSummary() {
+  document.getElementById('sum-amount').textContent = 'UGX ' + currentAmount.toLocaleString();
+  document.getElementById('amount-hidden').value = currentAmount;
+  const payBtn = document.getElementById('pay-btn');
+  payBtn.disabled = currentAmount <= 0;
+  if (currentAmount > 0) {
+    payBtn.innerHTML = `<i class="bi bi-lock-fill"></i> Pay UGX ${currentAmount.toLocaleString()}`;
+  } else {
+    payBtn.innerHTML = '<i class="bi bi-lock-fill"></i> Pay Now';
+  }
+}
+
+// Init
+document.getElementById('sum-gateway').textContent = 'MTN Mobile Money';
+
+// Submit loading
+document.getElementById('payment-form').addEventListener('submit', function(e) {
+  if (currentAmount <= 0) {
+    e.preventDefault();
+    alert('Please select a request or plan to pay for.');
+    return;
+  }
+  const btn = document.getElementById('pay-btn');
+  btn.innerHTML = '<span class="spinner"></span> Processing…';
+  btn.disabled = true;
+});
+</script>
+{% endblock %}

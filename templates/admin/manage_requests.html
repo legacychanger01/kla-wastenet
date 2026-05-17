@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block title %}Manage Requests{% endblock %}
+{% block breadcrumb_current %}Pickup Requests{% endblock %}
+
+{% block extra_styles %}
+.filter-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
+.filter-bar .form-control, .filter-bar .form-select { max-width: 180px; }
+.request-table-wrap { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); overflow: hidden; }
+.bulk-bar { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--brand-50); border-bottom: 1px solid var(--brand-100); font-size: 13px; font-weight: 600; color: var(--brand-700); }
+.priority-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.priority-dot.urgent { background: #dc2626; }
+.priority-dot.high { background: #d97706; }
+.priority-dot.normal { background: #2563eb; }
+.priority-dot.low { background: #16a34a; }
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-row">
+    <div>
+      <h1>Pickup Requests</h1>
+      <p>{{ total_count }} total request{{ total_count|pluralize }} found</p>
+    </div>
+    <div class="flex gap-2">
+      <a href="{% url 'export_report' 'csv' %}?type=requests" class="btn btn-secondary btn-sm">
+        <i class="bi bi-filetype-csv"></i> CSV
+      </a>
+      <a href="{% url 'export_report' 'excel' %}?type=requests" class="btn btn-secondary btn-sm">
+        <i class="bi bi-file-earmark-excel"></i> Excel
+      </a>
+      <a href="{% url 'export_report' 'pdf' %}?type=requests" class="btn btn-secondary btn-sm">
+        <i class="bi bi-file-earmark-pdf"></i> PDF
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<form method="get" class="filter-bar">
+  <div class="input-group" style="max-width:280px">
+    <span class="input-addon left"><i class="bi bi-search"></i></span>
+    <input type="text" name="search" class="form-control"
+           placeholder="Search request, resident…"
+           value="{{ search }}"
+           style="border-radius:0 var(--radius-md) var(--radius-md) 0;border-left:none">
+  </div>
+  <select name="status" class="form-select" onchange="this.form.submit()">
+    <option value="">All Statuses</option>
+    {% for val, label in STATUS_CHOICES %}
+    <option value="{{ val }}" {% if val == status_filter %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <select name="division" class="form-select" onchange="this.form.submit()">
+    <option value="">All Divisions</option>
+    {% for val, label in DIVISIONS %}
+    <option value="{{ val }}" {% if val == division_filter %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  {% if search or status_filter or division_filter %}
+  <a href="{% url 'manage_requests' %}" class="btn btn-ghost btn-sm">
+    <i class="bi bi-x-circle"></i> Clear
+  </a>
+  {% endif %}
+</form>
+
+<!-- Requests Table -->
+<div class="request-table-wrap">
+  {% if requests %}
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Request #</th>
+          <th>Resident</th>
+          <th>Category</th>
+          <th>Division</th>
+          <th>Priority</th>
+          <th>Status</th>
+          <th>Amount</th>
+          <th>Date</th>
+          <th>Collector</th>
+          <th class="col-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for req in requests %}
+        <tr>
+          <td>
+            <a href="{% url 'request_detail' req.pk %}" style="font-weight:700;font-family:monospace;color:var(--color-primary)">
+              {{ req.request_number }}
+            </a>
+          </td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="avatar avatar-sm">{{ req.user.get_initials }}</div>
+              <div>
+                <div class="font-semibold text-sm">{{ req.user.get_display_name }}</div>
+                <div class="text-xs text-muted">{{ req.user.phone }}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span style="white-space:nowrap">{{ req.category.icon }} {{ req.category.name }}</span>
+          </td>
+          <td class="text-sm" style="text-transform:capitalize">{{ req.division }}</td>
+          <td>
+            <span style="display:flex;align-items:center;gap:5px">
+              <span class="priority-dot {{ req.priority }}"></span>
+              <span class="text-sm" style="text-transform:capitalize">{{ req.priority }}</span>
+            </span>
+          </td>
+          <td>
+            <span class="badge badge-{{ req.status }}">
+              <span class="badge-dot"></span>{{ req.get_status_display }}
+            </span>
+          </td>
+          <td>
+            <div class="text-sm font-bold {% if req.is_paid %}text-primary-color{% else %}text-muted{% endif %}">
+              {{ req.amount_due|floatformat:0 }}
+            </div>
+            <div class="text-xs text-muted">{% if req.is_paid %}✓ Paid{% else %}Unpaid{% endif %}</div>
+          </td>
+          <td class="text-sm text-muted">{{ req.created_at|date:"d M Y" }}</td>
+          <td>
+            {% if req.status == 'assigned' or req.status == 'in_progress' %}
+              {% with asgn=req.assignment %}
+              {% if asgn %}
+              <div style="display:flex;align-items:center;gap:6px">
+                <div class="avatar avatar-sm">{{ asgn.collector.get_initials }}</div>
+                <span class="text-sm truncate" style="max-width:90px">{{ asgn.collector.get_display_name }}</span>
+              </div>
+              {% endif %}
+              {% endwith %}
+            {% elif req.status == 'pending' %}
+            <span class="text-xs text-muted">Unassigned</span>
+            {% else %}
+            <span class="text-xs text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="col-actions">
+            <div class="flex gap-1" style="justify-content:flex-end">
+              {% if req.status == 'pending' %}
+              <a href="{% url 'assign_request' req.pk %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-person-plus"></i> Assign
+              </a>
+              {% endif %}
+              <a href="{% url 'request_detail' req.pk %}" class="btn btn-secondary btn-sm">
+                <i class="bi bi-eye"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state-icon">📋</div>
+    <h3>No requests found</h3>
+    <p>Try adjusting your filters or search terms.</p>
+    <a href="{% url 'manage_requests' %}" class="btn btn-secondary">Clear filters</a>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Pagination -->
+{% if requests.has_other_pages %}
+<div class="pagination">
+  {% if requests.has_previous %}
+  <a href="?page={{ requests.previous_page_number }}&status={{ status_filter }}&division={{ division_filter }}&search={{ search }}" class="page-btn">
+    <i class="bi bi-chevron-left"></i>
+  </a>
+  {% endif %}
+  {% for i in requests.paginator.page_range %}
+    {% if requests.number == i %}
+    <span class="page-btn active">{{ i }}</span>
+    {% elif i > requests.number|add:"-3" and i < requests.number|add:"3" %}
+    <a href="?page={{ i }}&status={{ status_filter }}&division={{ division_filter }}&search={{ search }}" class="page-btn">{{ i }}</a>
+    {% endif %}
+  {% endfor %}
+  {% if requests.has_next %}
+  <a href="?page={{ requests.next_page_number }}&status={{ status_filter }}&division={{ division_filter }}&search={{ search }}" class="page-btn">
+    <i class="bi bi-chevron-right"></i>
+  </a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
