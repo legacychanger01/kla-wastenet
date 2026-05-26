@@ -114,7 +114,7 @@
 
         {% if assignment.pickup_request.status != 'collected' %}
         <div class="steps-row">
-          <button class="step-action {% if assignment.pickup_request.status == 'assigned' %}active{% elif assignment.pickup_request.status in 'in_progress,collected' %}completed{% endif %}"
+          <button class="step-action {% if assignment.pickup_request.status == 'assigned' %}active{% elif assignment.pickup_request.status in 'in_progress,collected'|split:',' %}completed{% endif %}"
                   onclick="openUpdate('{{ assignment.pk }}', 'in_progress')">
             🚛 Start Pickup
           </button>

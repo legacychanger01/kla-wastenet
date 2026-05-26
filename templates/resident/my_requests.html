@@ -98,15 +98,15 @@
     <!-- Progress Track -->
     <div class="req-timeline mt-3">
       {% with status=req.status %}
-      <div class="req-step {% if status in 'pending,assigned,in_progress,collected' %}done{% endif %}">
+      <div class="req-step {% if status in 'pending,assigned,in_progress,collected'|split:',' %}done{% endif %}">
         <div class="req-step-dot"></div>
         <div class="req-step-label">Submitted</div>
       </div>
-      <div class="req-step {% if status in 'assigned,in_progress,collected' %}done{% elif status == 'pending' %}{% endif %}">
+      <div class="req-step {% if status in 'assigned,in_progress,collected'|split:',' %}done{% elif status == 'pending' %}{% endif %}">
         <div class="req-step-dot"></div>
         <div class="req-step-label">Assigned</div>
       </div>
-      <div class="req-step {% if status in 'in_progress,collected' %}done{% elif status == 'assigned' %}active{% endif %}">
+      <div class="req-step {% if status in 'in_progress,collected'|split:',' %}done{% elif status == 'assigned' %}active{% endif %}">
         <div class="req-step-dot"></div>
         <div class="req-step-label">En Route</div>
       </div>

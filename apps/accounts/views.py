@@ -63,9 +63,14 @@ def login_view(request):
         return redirect_by_role(request.user)
 
     if request.method == 'POST':
-        username = request.POST.get('username', '').strip()
+        login_value = request.POST.get('username', '').strip()
         password = request.POST.get('password', '')
-        user = authenticate(request, username=username, password=password)
+        user = authenticate(request, username=login_value, password=password)
+
+        if user is None:
+            account = User.objects.filter(Q(username__iexact=login_value) | Q(email__iexact=login_value)).first()
+            if account:
+                user = authenticate(request, username=account.username, password=password)
 
         if user is not None:
             if not user.is_active:
@@ -85,7 +90,7 @@ def login_view(request):
             )
 
             messages.success(request, f'Welcome back, {user.get_display_name()}! 👋')
-            next_url = request.GET.get('next')
+            next_url = request.POST.get('next') or request.GET.get('next')
             if next_url:
                 return redirect(next_url)
             return redirect_by_role(user)

@@ -162,8 +162,8 @@
           <div><div class="font-semibold text-sm">Request Submitted</div><div class="text-xs text-muted">{{ pickup.created_at|date:"d M Y H:i" }}</div></div>
         </div>
         <div class="tl-item">
-          <div class="tl-dot {% if pickup.status in 'assigned,in_progress,collected' %}done{% elif pickup.status == 'pending' %}active{% endif %}">
-            {% if pickup.status in 'assigned,in_progress,collected' %}✓{% else %}2{% endif %}
+          <div class="tl-dot {% if pickup.status in 'assigned,in_progress,collected'|split:',' %}done{% elif pickup.status == 'pending' %}active{% endif %}">
+            {% if pickup.status in 'assigned,in_progress,collected'|split:',' %}✓{% else %}2{% endif %}
           </div>
           <div>
             <div class="font-semibold text-sm">Collector Assigned</div>
@@ -178,8 +178,8 @@
           </div>
         </div>
         <div class="tl-item">
-          <div class="tl-dot {% if pickup.status in 'in_progress,collected' %}done{% elif pickup.status == 'assigned' %}active{% endif %}">
-            {% if pickup.status in 'in_progress,collected' %}✓{% else %}3{% endif %}
+          <div class="tl-dot {% if pickup.status in 'in_progress,collected'|split:',' %}done{% elif pickup.status == 'assigned' %}active{% endif %}">
+            {% if pickup.status in 'in_progress,collected'|split:',' %}✓{% else %}3{% endif %}
           </div>
           <div>
             <div class="font-semibold text-sm">Collection In Progress</div>
@@ -256,7 +256,7 @@
     <div class="card">
       <div class="card-title mb-3">Actions</div>
       <div class="flex-col gap-2">
-        {% if pickup.status in 'pending,assigned' and pickup.user == user %}
+        {% if pickup.status in 'pending,assigned'|split:',' and pickup.user == user %}
         <button onclick="cancelRequest()" class="btn btn-danger w-full">
           <i class="bi bi-x-circle"></i> Cancel Request
         </button>

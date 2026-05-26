@@ -63,6 +63,20 @@
         <div class="alert-body">{{ message }}</div>
       </div>
       {% endfor %}{% endif %}
+      {% if form.errors %}
+      <div class="alert alert-danger" style="margin-bottom:16px">
+        <ul style="margin:0;padding-left:18px">
+          {% for field in form %}
+            {% for error in field.errors %}
+            <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+            {% endfor %}
+          {% endfor %}
+          {% for error in form.non_field_errors %}
+          <li>{{ error }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
       <form method="post" action="{% url 'register' %}" id="register-form" autocomplete="on">
         {% csrf_token %}
         <div class="form-row-2">

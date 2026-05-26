@@ -31,7 +31,7 @@
           <div class="text-xs text-muted">Mark as in progress</div>
         </label>
         {% endif %}
-        {% if pickup.status in 'assigned,in_progress' %}
+        {% if pickup.status in 'assigned,in_progress'|split:',' %}
         <label style="padding:16px;border:2px solid var(--border-color);border-radius:var(--radius-lg);cursor:pointer;text-align:center;transition:all .2s" class="status-option" data-val="collected">
           <input type="radio" name="status" value="collected" style="display:none">
           <div style="font-size:24px;margin-bottom:8px">✅</div>
