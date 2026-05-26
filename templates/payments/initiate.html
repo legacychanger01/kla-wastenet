@@ -127,9 +127,9 @@
         {% for gw_key, gw_label, gw_icon, gw_color in GATEWAYS %}
         <label class="gateway-option {% if forloop.first %}selected{% endif %}" onclick="selectGateway('{{ gw_key }}', this)" id="gw-{{ gw_key }}">
           <input type="radio" name="gateway" value="{{ gw_key }}" {% if forloop.first %}checked{% endif %}>
-          <div class="gateway-logo" style="background:{{ gw_color }}22">
-            <i class="{{ gw_icon }}" style="color:{{ gw_color }}"></i>
-          </div>
+          <div class="gateway-logo" style="background-color: {{ gw_color }}22;">
+            <i class="{{ gw_icon }}" style="color: {{ gw_color }};"></i>
+         </div>
           <div class="gateway-info">
             <div class="name">{{ gw_label }}</div>
             <div class="desc">
